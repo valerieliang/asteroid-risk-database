@@ -61,10 +61,8 @@ CREATE TABLE CloseApproaches (
     close_approach_date DATETIME NOT NULL,
     miss_distance FLOAT NOT NULL,
     relative_velocity FLOAT NOT NULL,
-    impact_probability FLOAT,
     FOREIGN KEY (neo_id) REFERENCES NEOs(neo_id)
         ON DELETE CASCADE,
     CHECK (miss_distance >= 0),
-    CHECK (relative_velocity >= 0),
-    CHECK (impact_probability IS NULL OR (impact_probability BETWEEN 0 AND 1))
+    CHECK (relative_velocity >= 0)
 );
