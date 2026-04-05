@@ -49,12 +49,10 @@ CREATE TABLE Observation (
     neo_id VARCHAR(50) NOT NULL,
     observatory_code VARCHAR(50) NOT NULL,
     observation_date DATETIME NOT NULL,
-    snr FLOAT,
     FOREIGN KEY (neo_id) REFERENCES NEOs(neo_id)
         ON DELETE CASCADE,
     FOREIGN KEY (observatory_code) REFERENCES Observatory(observatory_code)
-        ON DELETE CASCADE,
-    CHECK (snr IS NULL OR snr >= 0)
+        ON DELETE CASCADE
 );
 
 CREATE TABLE CloseApproaches (
