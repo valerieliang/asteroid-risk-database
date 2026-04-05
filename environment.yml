@@ -1,0 +1,10 @@
+name: asteroid-risk-db
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - requests=2.31.0
+  - pip:
+    - typing-extensions
