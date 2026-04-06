@@ -7,5 +7,6 @@ dependencies:
   - pip
   - requests=2.31.0
   - aiohttp=3.9.0
+  - pandas=2.3.3
   - pip:
     - typing-extensions
