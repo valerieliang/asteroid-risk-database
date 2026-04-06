@@ -61,3 +61,6 @@ def load_close_approaches():
             time.sleep(JPL_REQUEST_DELAY)
 
     print(f"Written {total_ca} CloseApproach rows")
+
+if __name__ == "__main__":
+    load_close_approaches()

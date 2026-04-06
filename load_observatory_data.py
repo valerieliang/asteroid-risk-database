@@ -27,3 +27,6 @@ def load_observatory_data():
             obs_w.writerow([code, name, round(longitude, 6), round(cos_val, 7), round(sin_val, 7)])
 
     print(f"Written {len(raw_obs)} Observatory rows")
+
+if __name__ == "__main__":
+    load_observatory_data()
