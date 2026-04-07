@@ -1,4 +1,8 @@
 __pycache__
+venv
+old 
+
 secrets.py
-nea_extended.json
-mpcorb_extended.json
+
+*.json
+
