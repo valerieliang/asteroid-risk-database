@@ -1,0 +1,44 @@
+Process Documentation for NEO Hazard Assessment Database
+
+1. Data Source
+--------------
+Download data from https://ssd.jpl.nasa.gov/tools/sbdb_query.html
+
+Format: CSV (sbdb_query_results.csv)
+
+Fields: 
+"spkid","full_name","pdes","name","prefix","neo","pha","sats","H","G","M1","M2","K1","K2","PC","diameter","extent","albedo","rot_per","GM","BV","UB","IR","spec_B","spec_T","H_sigma","diameter_sigma","orbit_id","epoch","epoch_mjd","epoch_cal","equinox","e","a","q","i","om","w","ma","ad","n","tp","tp_cal","per","per_y","moid","moid_ld","moid_jup","t_jup","sigma_e","sigma_a","sigma_q","sigma_i","sigma_om","sigma_w","sigma_ma","sigma_ad","sigma_n","sigma_tp","sigma_per","class","producer","data_arc","first_obs","last_obs","n_obs_used","n_del_obs_used","n_dop_obs_used","condition_code","rms","two_body","A1","A1_sigma","A2","A2_sigma","A3","A3_sigma","DT","DT_sigma"
+
+2. Cleaning & Filtering Steps
+------------------------------
+- Rows with neo = 'N' are skipped entirely (non-NEOs).
+- Rows missing spkid are skipped (cannot link tables).
+- Empty string values are replaced with '\N' (PostgreSQL NULL representation) in output.
+- String trimming applied to all fields.
+- full_name truncated to 120 characters.
+- pha converted to 'Y' or 'N'.
+
+3. Duplicates & Anomalies
+--------------------------
+- No explicit duplicate removal needed because spkid is unique per NEO.
+- Anomalies handled:
+  - Missing numeric values (empty strings) -> NULL
+  - Missing or malformed pha -> defaults to 'N'
+  - Rows without spkid -> discarded (not counted as error)
+
+4. File Splitting
+------------------
+
+Source: data/sbdb_query_results.csv
+    
+Outputs:
+- data/neo_cleaned.csv                 (spkid, full_name, pha, class)
+- data/physical_properties_cleaned.csv (spkid, H, diameter)
+- data/orbital_elements_cleaned.csv    (spkid, e, q, i, moid, moid_ld)
+- data/observation_record_cleaned.csv  (spkid, data_arc, condition_code)
+
+5. Usage
+--------------------
+1. Download sbdb_query_results.csv from JPL SBDB API with NEOs only.
+2. Place file in data/ directory.
+3. Run: python process.py --input data/sbdb_query_results.csv
