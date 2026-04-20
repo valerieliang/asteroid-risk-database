@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>NEO Hazard Assessment Database</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: linear-gradient(145deg, #eef2f7 0%, #d9e0e8 100%);
+            font-family: 'Inter', system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            padding: 2rem 1.5rem;
+            color: #0a1a2f;
+        }
+
+        .container {
+            max-width: 1500px;
+            margin: 0 auto;
+        }
+
+        .hero {
+            background: rgba(10, 26, 47, 0.85);
+            backdrop-filter: blur(12px);
+            border-radius: 2.5rem;
+            padding: 1.8rem 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 20px 35px -12px rgba(0,0,0,0.25);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .hero h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: #eef2f8;
+            text-shadow: 0 2px 3px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .hero p {
+            color: #ccdeee;
+            margin-top: 0.5rem;
+            font-weight: 500;
+        }
+
+        .search-panel {
+            background: white;
+            border-radius: 2rem;
+            padding: 1.8rem 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+            transition: all 0.2s;
+        }
+
+        .filter-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.2rem;
+            align-items: flex-end;
+            margin-bottom: 1.8rem;
+        }
+
+        .filter-group {
+            flex: 1 1 180px;
+            min-width: 150px;
+        }
+
+        .filter-group label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #2c3e66;
+            margin-bottom: 0.4rem;
+        }
+
+        .filter-group input, .filter-group select {
+            width: 100%;
+            padding: 0.7rem 1rem;
+            border-radius: 1.2rem;
+            border: 1.5px solid #e2e8f0;
+            background: #fefefe;
+            font-weight: 500;
+            transition: 0.2s;
+            font-family: inherit;
+        }
+
+        .filter-group input:focus, .filter-group select:focus {
+            outline: none;
+            border-color: #3b6ea0;
+            box-shadow: 0 0 0 3px rgba(59,110,160,0.2);
+        }
+
+        .search-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        button {
+            background: #1f3a4b;
+            border: none;
+            padding: 0.7rem 1.6rem;
+            border-radius: 2rem;
+            font-weight: 600;
+            font-family: inherit;
+            color: white;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.85rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        button.primary {
+            background: #0f2c3b;
+            border: 1px solid #5d8bb8;
+        }
+
+        button.primary:hover {
+            background: #1e4a62;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+        }
+
+        button.secondary {
+            background: #eef2f8;
+            color: #1f3a4b;
+            border: 1px solid #cbd5e1;
+        }
+
+        button.secondary:hover {
+            background: #e2e8f0;
+        }
+
+        .stats-badge {
+            background: #eef2ff;
+            padding: 0.5rem 1.2rem;
+            border-radius: 2rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #1e3a5f;
+        }
+
+        .result-container {
+            background: white;
+            border-radius: 1.8rem;
+            overflow-x: auto;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            min-width: 950px;
+        }
+
+        th {
+            background: #f1f5f9;
+            padding: 1rem 1rem;
+            text-align: left;
+            font-weight: 700;
+            color: #0c2b41;
+            border-bottom: 2px solid #dce5ef;
+        }
+
+        td {
+            padding: 0.85rem 1rem;
+            border-bottom: 1px solid #eef2f6;
+            vertical-align: middle;
+        }
+
+        tr:hover td {
+            background-color: #fafcff;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.2rem 0.7rem;
+            border-radius: 2rem;
+            font-weight: 600;
+            font-size: 0.7rem;
+            background: #eef2ff;
+            color: #1e3a8a;
+        }
+
+        .badge.pha {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .badge.nonpha {
+            background: #e0f2fe;
+            color: #0369a1;
+        }
+
+        .class-tag {
+            background: #e9eef3;
+            border-radius: 1rem;
+            padding: 0.2rem 0.7rem;
+            font-weight: 500;
+            font-size: 0.7rem;
+        }
+
+        .quality-high {
+            background: #dcfce7;
+            color: #15803d;
+            padding: 0.2rem 0.6rem;
+            border-radius: 1rem;
+            font-weight: 600;
+        }
+        .quality-mid {
+            background: #fef9c3;
+            color: #854d0e;
+            padding: 0.2rem 0.6rem;
+            border-radius: 1rem;
+            font-weight: 600;
+        }
+        .quality-low {
+            background: #ffe4e6;
+            color: #b91c1c;
+            padding: 0.2rem 0.6rem;
+            border-radius: 1rem;
+            font-weight: 600;
+        }
+
+        .empty-row td {
+            text-align: center;
+            padding: 3rem;
+            color: #5f6c84;
+            font-style: italic;
+        }
+
+        .loading-spinner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 2rem;
+            color: #2c5282;
+        }
+
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid #cbd5e0;
+            border-top-color: #2c5282;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .api-notice {
+            background: #fef9e6;
+            border-left: 4px solid #e6b800;
+            padding: 0.6rem 1rem;
+            border-radius: 1rem;
+            margin-bottom: 1rem;
+            font-size: 0.75rem;
+            color: #664d03;
+        }
+
+        footer {
+            margin-top: 2rem;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #4a5b74;
+        }
+
+        @media (max-width: 700px) {
+            body {
+                padding: 1rem;
+            }
+            .hero h1 {
+                font-size: 1.7rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="hero">
+        <h1>NEO Hazard Assessment Database</h1>
+    </div>
+
+    <div class="search-panel">
+        <div class="filter-grid">
+            <div class="filter-group">
+                <label>Object name / ID</label>
+                <input type="text" id="searchName" placeholder="e.g., Bennu, 433, Apollo" autocomplete="off">
+            </div>
+            <div class="filter-group">
+                <label>Class (APO/ATE/AMO)</label>
+                <select id="filterClass">
+                    <option value="">All classes</option>
+                    <option value="APO">APO (Apollo)</option>
+                    <option value="ATE">ATE (Aten)</option>
+                    <option value="AMO">AMO (Amor)</option>
+                    <option value="APOLLO">Apollo</option>
+                    <option value="ATEN">Aten</option>
+                    <option value="AMOR">Amor</option>
+                    <option value="COMET">Comet</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>PHA status</label>
+                <select id="filterPHA">
+                    <option value="">Any</option>
+                    <option value="Y">Potentially Hazardous (PHA)</option>
+                    <option value="N">Non-Hazardous</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Min diameter (km)</label>
+                <input type="number" id="minDiameter" step="0.1" placeholder=">= km" value="">
+            </div>
+            <div class="filter-group">
+                <label>Max MOID (LD)</label>
+                <input type="number" id="maxMoidLd" step="0.5" placeholder="<= lunar dist" value="">
+            </div>
+            <div class="filter-group">
+                <label>Condition code range</label>
+                <select id="filterCondCode">
+                    <option value="">Any quality</option>
+                    <option value="good">Good (0-2)</option>
+                    <option value="medium">Medium (3-5)</option>
+                    <option value="poor">Poor (6-9)</option>
+                </select>
+            </div>
+        </div>
+        <div class="search-actions">
+            <div>
+                <button class="primary" id="searchBtn">Search NEOs</button>
+                <button class="secondary" id="resetBtn">Reset filters</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="result-container">
+        <table id="neoTable">
+            <thead>
+                <tr>
+                    <th>ID (spkid)</th><th>Full name</th><th>Class</th><th>PHA</th>
+                    <th>Diameter (km)</th><th>MOID (LD)</th><th>Data arc (days)</th><th>Cond. code</th><th>e / i (deg)</th>
+                </tr>
+            </thead>
+            <tbody id="neoTableBody">
+                <tr class="empty-row"><td colspan="9">No data loaded.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
