@@ -553,7 +553,7 @@ async function apiFetch(params){
 const TABLE_BUILDERS = {
   // ── Search ───────────────────────────────────────────
   search(rows){
-    const head = `<tr><th>SPKID</th><th>Name</th><th>Class</th><th>PHA</th><th>Diam (km)</th><th>MOID (AU)</th><th>MOID (LD)</th><th>ML Risk %</th><th>Pred PHA</th><th>Cond</th><th>Anomaly</th></tr>`;
+    const head = `<tr><th>SPKID</th><th>Name</th><th>Class</th><th>PHA</th><th>Diam (km)</th><th>MOID (AU)</th><th>MOID (LD)</th></tr>`;
     const body = rows.map(r => `<tr>
       <td style="color:var(--muted);font-size:0.68rem">${n(r.spkid)}</td>
       <td style="color:var(--heading);font-weight:700">${n(r.full_name)}</td>
@@ -562,10 +562,6 @@ const TABLE_BUILDERS = {
       <td style="color:${r.diameter_km>1?'var(--accent2)':'var(--text)'}">${n(r.diameter_km)}</td>
       <td>${moidColor(r.moid_au)}</td>
       <td style="color:var(--muted)">${n(r.moid_ld)}</td>
-      <td>${riskBar(r.ml_risk_pct)}</td>
-      <td>${pred(r.pred_pha)}</td>
-      <td>${condColor(r.condition_code)}</td>
-      <td>${anom(r.anomaly_flag)}</td>
     </tr>`).join('');
     return mkTable(head, body);
   },
