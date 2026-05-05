@@ -125,13 +125,9 @@ switch ($action) {
         $limit   = intParam('limit', 100, 10, 1000);
         $search  = trim(isset($_GET['search']) ? $_GET['search'] : '');
         $class   = trim(isset($_GET['class'])  ? $_GET['class']  : '');
-        $pha     = enumParam('pha',     ['Y', 'N'], '');
-        $pred    = enumParam('pred',    ['Y', 'N', 'disc'], '');
-        $anomaly = enumParam('anomaly', ['Y', 'N'], '');
-        $maxCond = intParam('cond',  9, 0, 9);
+
         $maxMoid = floatParam('moid', 0.3);
         $minDiam = floatParam('diam', 0.0);
-        $minRisk = intParam('risk',  0, 0, 100);
 
         $where = ['1=1'];
         $binds = [];
@@ -141,59 +137,38 @@ switch ($action) {
             $binds[] = ['s', '%' . $search . '%'];
             $binds[] = ['i', (int)$search];
         }
+
         if ($class !== '') {
             $where[] = 'n.class = ?';
             $binds[] = ['s', $class];
         }
-        if ($pha !== '') {
-            $where[] = 'n.pha = ?';
-            $binds[] = ['s', $pha];
-        }
-        if ($pred === 'disc') {
-            $where[] = 'p.pred_pha IS NOT NULL AND n.pha != p.pred_pha';
-        } elseif ($pred !== '') {
-            $where[] = 'p.pred_pha = ?';
-            $binds[] = ['s', $pred];
-        }
-        if ($anomaly !== '') {
-            $where[] = 'oa.anomaly_flag = ?';
-            $binds[] = ['s', $anomaly];
-        }
-        $where[] = '(ob.condition_code IS NULL OR ob.condition_code <= ?)';
-        $binds[] = ['i', $maxCond];
+
         $where[] = '(oe.moid IS NULL OR oe.moid <= ?)';
         $binds[] = ['d', $maxMoid];
+
         if ($minDiam > 0) {
             $where[] = 'pp.diameter >= ?';
             $binds[] = ['d', $minDiam];
         }
-        if ($minRisk > 0) {
-            $where[] = '(p.pha_prob IS NULL OR p.pha_prob * 100 >= ?)';
-            $binds[] = ['d', (float)$minRisk];
-        }
 
         $whereSQL = implode(' AND ', $where);
+
         $sql = "
             SELECT
                 n.spkid, n.full_name, n.class, n.pha,
-                ROUND(pp.diameter, 2)          AS diameter_km,
-                ROUND(oe.moid, 6)              AS moid_au,
-                ROUND(oe.moid_ld, 1)           AS moid_ld,
-                ROUND(p.pha_prob * 100, 2)     AS ml_risk_pct,
-                p.pred_pha,
-                ob.condition_code,
-                oa.anomaly_flag
+                ROUND(pp.diameter, 2) AS diameter_km,
+                ROUND(oe.moid, 6)     AS moid_au,
+                ROUND(oe.moid_ld, 1)  AS moid_ld
             FROM NEO n
-            LEFT JOIN PhysicalProperties pp  ON n.spkid = pp.spkid
-            LEFT JOIN OrbitalElements oe     ON n.spkid = oe.spkid
-            LEFT JOIN ObservationRecord ob   ON n.spkid = ob.spkid
-            LEFT JOIN PredictedPHAs p        ON n.spkid = p.spkid
-            LEFT JOIN OrbitalAnomalies oa    ON n.spkid = oa.spkid
+            LEFT JOIN PhysicalProperties pp ON n.spkid = pp.spkid
+            LEFT JOIN OrbitalElements oe    ON n.spkid = oe.spkid
             WHERE $whereSQL
             ORDER BY oe.moid ASC
             LIMIT ?
         ";
+
         $binds[] = ['i', $limit];
+
         $rows = runQuery($sql, $binds);
         jsonOK($rows, ['count' => count($rows), 'limit' => $limit]);
 
