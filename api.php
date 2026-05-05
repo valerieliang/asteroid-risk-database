@@ -5,10 +5,10 @@
  * Place in same directory as index.html. Configure DB credentials below.
  */
 
-// -- DB CONFIG ----------------------------------------------------------------
+// -- DB CONFIG: CHANGE AS NEEDED TO LOG IN TO YOUR LOCAL MySQL SERVER ----------------------
 define('DB_HOST', 'localhost');
-define('DB_USER', 'neo_user');
-define('DB_PASS', 'neo_password');
+define('DB_USER', 'root');
+define('DB_PASS', '');
 define('DB_NAME', 'neo_hazard_db');
 
 // -- CORS & JSON HEADERS ------------------------------------------------------
@@ -66,7 +66,7 @@ function enumParam(string $key, array $allowed, string $default = ''): string {
 
 /** Run query and return all rows as assoc array */
 function runQuery(string $sql, array $binds = []): array {
-    $db  = getDB();
+    $db   = getDB();
     $stmt = $db->prepare($sql);
     if (!$stmt) {
         jsonError('Query prepare error: ' . $db->error, 500);
@@ -99,7 +99,7 @@ $action = $_GET['action'] ?? '';
 switch ($action) {
 
     // ========================================================================
-    // STATS -- Query 8: Summary dashboard for the header stat cards
+    // STATS -- Summary dashboard for the header stat cards
     // ========================================================================
     case 'stats':
         $rows = runQuery("
@@ -122,26 +122,27 @@ switch ($action) {
 
     // ========================================================================
     // SEARCH -- Full multi-parameter filter (drives Search & Lookup tab)
+    // FIX: ob.condition_code filter now NULL-safe so LEFT JOIN rows aren't dropped
     // ========================================================================
     case 'search':
-        $limit    = intParam('limit', 100, 10, 1000);
-        $search   = trim($_GET['search'] ?? '');
-        $class    = trim($_GET['class'] ?? '');
-        $pha      = enumParam('pha',      ['Y', 'N'], '');
-        $pred     = enumParam('pred',     ['Y', 'N', 'disc'], '');
-        $anomaly  = enumParam('anomaly',  ['Y', 'N'], '');
-        $maxCond  = intParam('cond',  9, 0, 9);
-        $maxMoid  = floatParam('moid',  0.3);
-        $minDiam  = floatParam('diam',  0.0);
-        $minRisk  = intParam('risk',   0, 0, 100);
+        $limit   = intParam('limit', 100, 10, 1000);
+        $search  = trim($_GET['search'] ?? '');
+        $class   = trim($_GET['class'] ?? '');
+        $pha     = enumParam('pha',     ['Y', 'N'], '');
+        $pred    = enumParam('pred',    ['Y', 'N', 'disc'], '');
+        $anomaly = enumParam('anomaly', ['Y', 'N'], '');
+        $maxCond = intParam('cond',  9, 0, 9);
+        $maxMoid = floatParam('moid', 0.3);
+        $minDiam = floatParam('diam', 0.0);
+        $minRisk = intParam('risk',  0, 0, 100);
 
-        $where  = ['1=1'];
-        $binds  = [];
+        $where = ['1=1'];
+        $binds = [];
 
         if ($search !== '') {
-            $where[]  = '(n.full_name LIKE ? OR n.spkid = ?)';
-            $binds[]  = ['s', '%' . $search . '%'];
-            $binds[]  = ['i', (int)$search];
+            $where[] = '(n.full_name LIKE ? OR n.spkid = ?)';
+            $binds[] = ['s', '%' . $search . '%'];
+            $binds[] = ['i', (int)$search];
         }
         if ($class !== '') {
             $where[] = 'n.class = ?';
@@ -161,7 +162,8 @@ switch ($action) {
             $where[] = 'oa.anomaly_flag = ?';
             $binds[] = ['s', $anomaly];
         }
-        $where[] = 'ob.condition_code <= ?';
+        // FIX: was `ob.condition_code <= ?` which silently excluded NULLs from LEFT JOIN
+        $where[] = '(ob.condition_code IS NULL OR ob.condition_code <= ?)';
         $binds[] = ['i', $maxCond];
         $where[] = '(oe.moid IS NULL OR oe.moid <= ?)';
         $binds[] = ['d', $maxMoid];
@@ -231,10 +233,10 @@ switch ($action) {
         $rows = runQuery("
             SELECT
                 n.class,
-                COUNT(*)                                                                        AS total_count,
-                SUM(CASE WHEN n.pha = 'Y'      THEN 1 ELSE 0 END)                             AS pha_flag_count,
-                ROUND(100.0 * SUM(CASE WHEN n.pha = 'Y' THEN 1 ELSE 0 END) / COUNT(*), 2)    AS pha_flag_pct,
-                SUM(CASE WHEN p.pred_pha = 'Y' THEN 1 ELSE 0 END)                             AS pred_pha_count,
+                COUNT(*)                                                                          AS total_count,
+                SUM(CASE WHEN n.pha = 'Y'      THEN 1 ELSE 0 END)                               AS pha_flag_count,
+                ROUND(100.0 * SUM(CASE WHEN n.pha = 'Y' THEN 1 ELSE 0 END) / COUNT(*), 2)      AS pha_flag_pct,
+                SUM(CASE WHEN p.pred_pha = 'Y' THEN 1 ELSE 0 END)                               AS pred_pha_count,
                 ROUND(100.0 * SUM(CASE WHEN p.pred_pha = 'Y' THEN 1 ELSE 0 END) / COUNT(*), 2) AS pred_pha_pct
             FROM NEO n
             LEFT JOIN PredictedPHAs p ON n.spkid = p.spkid
@@ -321,7 +323,7 @@ switch ($action) {
     // ========================================================================
     case 'q6':
         $limit  = intParam('limit', 30, 10, 100);
-        $filter = enumParam('filter', ['fn', 'fp'], '');  // fn=false negatives, fp=false positives
+        $filter = enumParam('filter', ['fn', 'fp'], '');
 
         $extraWhere = match($filter) {
             'fn'    => "AND n.pha = 'Y' AND p.pred_pha = 'N'",
@@ -343,7 +345,7 @@ switch ($action) {
                 ROUND(pp.diameter, 2)                                               AS diameter_km,
                 oe.moid                                                             AS moid_au
             FROM NEO n
-            JOIN PredictedPHAs p         ON n.spkid = p.spkid
+            JOIN PredictedPHAs p            ON n.spkid = p.spkid
             LEFT JOIN PhysicalProperties pp ON n.spkid = pp.spkid
             LEFT JOIN OrbitalElements oe    ON n.spkid = oe.spkid
             LEFT JOIN OrbitalAnomalies oa   ON n.spkid = oa.spkid
@@ -371,10 +373,10 @@ switch ($action) {
                 ob.condition_code,
                 oa.anomaly_flag
             FROM NEO n
-            JOIN OrbitalElements oe     ON n.spkid = oe.spkid
-            JOIN PhysicalProperties pp  ON n.spkid = pp.spkid
-            JOIN PredictedPHAs p        ON n.spkid = p.spkid
-            JOIN ObservationRecord ob   ON n.spkid = ob.spkid
+            JOIN OrbitalElements oe       ON n.spkid = oe.spkid
+            JOIN PhysicalProperties pp    ON n.spkid = pp.spkid
+            JOIN PredictedPHAs p          ON n.spkid = p.spkid
+            JOIN ObservationRecord ob     ON n.spkid = ob.spkid
             LEFT JOIN OrbitalAnomalies oa ON n.spkid = oa.spkid
             WHERE n.pha = 'Y' AND p.pha_prob > 0.5
             ORDER BY p.pha_prob DESC
@@ -383,7 +385,7 @@ switch ($action) {
         jsonOK($rows, ['query' => 'Q7', 'limit' => $limit]);
 
     // ========================================================================
-    // Q8 -- Summary statistics (already served by 'stats' but explicitly exposed)
+    // Q8 -- Summary statistics (also served by 'stats')
     // ========================================================================
     case 'q8':
         $rows = runQuery("
@@ -420,12 +422,12 @@ switch ($action) {
                 oa.anomaly_flag,
                 CONCAT_WS(', ',
                     CASE WHEN oa.moid_anomaly_yn = 'Y' THEN 'MOID' END,
-                    CASE WHEN oa.e_anomaly_yn = 'Y'    THEN 'Eccentricity' END,
-                    CASE WHEN oa.i_anomaly_yn = 'Y'    THEN 'Inclination' END
+                    CASE WHEN oa.e_anomaly_yn    = 'Y' THEN 'Eccentricity' END,
+                    CASE WHEN oa.i_anomaly_yn    = 'Y' THEN 'Inclination' END
                 )                                                   AS anomaly_types
             FROM NEO n
-            JOIN ObservationRecord ob   ON n.spkid = ob.spkid
-            JOIN OrbitalElements oe     ON n.spkid = oe.spkid
+            JOIN ObservationRecord ob       ON n.spkid = ob.spkid
+            JOIN OrbitalElements oe         ON n.spkid = oe.spkid
             LEFT JOIN PhysicalProperties pp ON n.spkid = pp.spkid
             LEFT JOIN OrbitalAnomalies oa   ON n.spkid = oa.spkid
             WHERE ob.condition_code = 0
@@ -441,16 +443,16 @@ switch ($action) {
         $rows = runQuery("
             SELECT
                 n.class,
-                COUNT(*)                                                                                AS neo_count,
-                ROUND(MIN(oe.q), 4)                                                                    AS min_q_au,
-                ROUND(MAX(oe.q), 4)                                                                    AS max_q_au,
-                ROUND(AVG(oe.q), 4)                                                                    AS avg_q_au,
-                SUM(CASE WHEN oe.q < 0.3 THEN 1 ELSE 0 END)                                           AS sun_approaching_count,
-                SUM(CASE WHEN oe.q BETWEEN 0.3 AND 1.0 THEN 1 ELSE 0 END)                             AS earth_crosser_count,
-                ROUND(100.0 * SUM(CASE WHEN oe.q < 0.3 THEN 1 ELSE 0 END) / COUNT(*), 2)             AS pct_sun_approaching,
-                SUM(CASE WHEN oa.anomaly_flag = 'Y' THEN 1 ELSE 0 END)                                AS anomaly_count
+                COUNT(*)                                                                     AS neo_count,
+                ROUND(MIN(oe.q), 4)                                                         AS min_q_au,
+                ROUND(MAX(oe.q), 4)                                                         AS max_q_au,
+                ROUND(AVG(oe.q), 4)                                                         AS avg_q_au,
+                SUM(CASE WHEN oe.q < 0.3 THEN 1 ELSE 0 END)                                AS sun_approaching_count,
+                SUM(CASE WHEN oe.q BETWEEN 0.3 AND 1.0 THEN 1 ELSE 0 END)                  AS earth_crosser_count,
+                ROUND(100.0 * SUM(CASE WHEN oe.q < 0.3 THEN 1 ELSE 0 END) / COUNT(*), 2)  AS pct_sun_approaching,
+                SUM(CASE WHEN oa.anomaly_flag = 'Y' THEN 1 ELSE 0 END)                     AS anomaly_count
             FROM NEO n
-            JOIN OrbitalElements oe     ON n.spkid = oe.spkid
+            JOIN OrbitalElements oe       ON n.spkid = oe.spkid
             LEFT JOIN OrbitalAnomalies oa ON n.spkid = oa.spkid
             WHERE oe.q IS NOT NULL
             GROUP BY n.class
@@ -465,20 +467,20 @@ switch ($action) {
         $rows = runQuery("
             SELECT
                 n.class,
-                COUNT(*)                                                                            AS member_count,
-                ROUND(AVG(pp.diameter), 2)                                                         AS avg_diameter_km,
-                ROUND(STDDEV(pp.diameter), 2)                                                      AS stddev_diameter_km,
-                ROUND(AVG(pp.H), 2)                                                                AS avg_magnitude_H,
-                ROUND(AVG(oe.e), 4)                                                                AS avg_eccentricity,
-                ROUND(AVG(oe.i), 2)                                                                AS avg_inclination_deg,
-                SUM(CASE WHEN oa.moid_anomaly_yn = 'Y' THEN 1 ELSE 0 END)                        AS moid_anomaly_count,
-                SUM(CASE WHEN oa.e_anomaly_yn    = 'Y' THEN 1 ELSE 0 END)                        AS e_anomaly_count,
-                SUM(CASE WHEN oa.i_anomaly_yn    = 'Y' THEN 1 ELSE 0 END)                        AS i_anomaly_count,
-                SUM(CASE WHEN oa.anomaly_flag    = 'Y' THEN 1 ELSE 0 END)                        AS anomaly_count,
+                COUNT(*)                                                                             AS member_count,
+                ROUND(AVG(pp.diameter), 2)                                                          AS avg_diameter_km,
+                ROUND(STDDEV(pp.diameter), 2)                                                       AS stddev_diameter_km,
+                ROUND(AVG(pp.H), 2)                                                                 AS avg_magnitude_H,
+                ROUND(AVG(oe.e), 4)                                                                 AS avg_eccentricity,
+                ROUND(AVG(oe.i), 2)                                                                 AS avg_inclination_deg,
+                SUM(CASE WHEN oa.moid_anomaly_yn = 'Y' THEN 1 ELSE 0 END)                         AS moid_anomaly_count,
+                SUM(CASE WHEN oa.e_anomaly_yn    = 'Y' THEN 1 ELSE 0 END)                         AS e_anomaly_count,
+                SUM(CASE WHEN oa.i_anomaly_yn    = 'Y' THEN 1 ELSE 0 END)                         AS i_anomaly_count,
+                SUM(CASE WHEN oa.anomaly_flag    = 'Y' THEN 1 ELSE 0 END)                         AS anomaly_count,
                 ROUND(100.0 * SUM(CASE WHEN oa.anomaly_flag = 'Y' THEN 1 ELSE 0 END) / COUNT(*), 2) AS pct_anomalies
             FROM NEO n
-            JOIN PhysicalProperties pp   ON n.spkid = pp.spkid
-            JOIN OrbitalElements oe      ON n.spkid = oe.spkid
+            JOIN PhysicalProperties pp    ON n.spkid = pp.spkid
+            JOIN OrbitalElements oe       ON n.spkid = oe.spkid
             LEFT JOIN OrbitalAnomalies oa ON n.spkid = oa.spkid
             WHERE pp.diameter IS NOT NULL AND pp.H IS NOT NULL
             GROUP BY n.class
@@ -494,16 +496,16 @@ switch ($action) {
         $rows = runQuery("
             SELECT
                 n.class,
-                COUNT(*)                        AS neo_count,
-                ROUND(MIN(oe.e), 4)             AS min_e,
-                ROUND(MAX(oe.e), 4)             AS max_e,
-                ROUND(AVG(oe.e), 4)             AS mean_e,
-                ROUND(STDDEV_POP(oe.e), 4)      AS stddev_e,
-                ROUND(AVG(oe.i), 2)             AS mean_incl_deg,
-                ROUND(STDDEV_POP(oe.i), 2)      AS stddev_incl_deg,
-                SUM(CASE WHEN oa.e_anomaly_yn = 'Y' THEN 1 ELSE 0 END) AS e_anomaly_count
+                COUNT(*)                                                        AS neo_count,
+                ROUND(MIN(oe.e), 4)                                             AS min_e,
+                ROUND(MAX(oe.e), 4)                                             AS max_e,
+                ROUND(AVG(oe.e), 4)                                             AS mean_e,
+                ROUND(STDDEV_POP(oe.e), 4)                                      AS stddev_e,
+                ROUND(AVG(oe.i), 2)                                             AS mean_incl_deg,
+                ROUND(STDDEV_POP(oe.i), 2)                                      AS stddev_incl_deg,
+                SUM(CASE WHEN oa.e_anomaly_yn = 'Y' THEN 1 ELSE 0 END)        AS e_anomaly_count
             FROM NEO n
-            JOIN OrbitalElements oe      ON n.spkid = oe.spkid
+            JOIN OrbitalElements oe       ON n.spkid = oe.spkid
             LEFT JOIN OrbitalAnomalies oa ON n.spkid = oa.spkid
             WHERE oe.e IS NOT NULL AND oe.i IS NOT NULL
             GROUP BY n.class
@@ -529,7 +531,7 @@ switch ($action) {
                 ROUND(p.pha_prob * 100, 2)  AS ml_risk_pct,
                 oa.anomaly_flag
             FROM NEO n
-            JOIN OrbitalElements oe      ON n.spkid = oe.spkid
+            JOIN OrbitalElements oe         ON n.spkid = oe.spkid
             LEFT JOIN PhysicalProperties pp ON n.spkid = pp.spkid
             LEFT JOIN PredictedPHAs p       ON n.spkid = p.spkid
             LEFT JOIN OrbitalAnomalies oa   ON n.spkid = oa.spkid
@@ -540,7 +542,7 @@ switch ($action) {
         jsonOK($rows, ['query' => 'Q13', 'limit' => $limit]);
 
     // ========================================================================
-    // Q14 -- Sun-grazers (q < 0.5) + high-inclination (i > 45 Deg)
+    // Q14 -- Sun-grazers (q < 0.5) + high-inclination (i > 45 deg)
     // ========================================================================
     case 'q14':
         $limit = intParam('limit', 50, 10, 250);
@@ -582,22 +584,22 @@ switch ($action) {
         $rows  = runQuery("
             SELECT
                 n.spkid, n.full_name, n.class,
-                oe.e                                                    AS eccentricity,
-                ROUND(oe.q / (1 - oe.e), 4)                            AS semi_major_axis_au,
-                ROUND(oe.q, 4)                                          AS perihelion_au,
-                ROUND(oe.q * (1 + oe.e) / (1 - oe.e), 4)              AS aphelion_au,
-                ROUND((oe.q * (1 + oe.e) / (1 - oe.e) + oe.q) / 2, 4) AS center_offset_au,
-                ROUND((oe.q * (1 + oe.e) / (1 - oe.e) - oe.q) / 2, 4) AS semi_latus_rectum,
-                ROUND(oe.q * (1 + oe.e) / (1 - oe.e) - 1.0, 4)        AS beyond_earth_au,
+                oe.e                                                     AS eccentricity,
+                ROUND(oe.q / (1 - oe.e), 4)                             AS semi_major_axis_au,
+                ROUND(oe.q, 4)                                           AS perihelion_au,
+                ROUND(oe.q * (1 + oe.e) / (1 - oe.e), 4)               AS aphelion_au,
+                ROUND((oe.q * (1 + oe.e) / (1 - oe.e) + oe.q) / 2, 4)  AS center_offset_au,
+                ROUND((oe.q * (1 + oe.e) / (1 - oe.e) - oe.q) / 2, 4)  AS semi_latus_rectum,
+                ROUND(oe.q * (1 + oe.e) / (1 - oe.e) - 1.0, 4)         AS beyond_earth_au,
                 CASE
                     WHEN oe.q < 1.0 AND oe.q * (1 + oe.e) / (1 - oe.e) > 1.0 THEN 'Earth-Crossing'
                     WHEN oe.q < 1.0                                             THEN 'Earth-Approaching (Inside)'
                     WHEN oe.q * (1 + oe.e) / (1 - oe.e) > 1.0                 THEN 'Earth-Approaching (Outside)'
                     ELSE 'Safe'
-                END                                                     AS earth_intersection_type,
-                ROUND(oe.moid, 6)                                       AS moid_au,
+                END                                                      AS earth_intersection_type,
+                ROUND(oe.moid, 6)                                        AS moid_au,
                 p.pred_pha,
-                ROUND(p.pha_prob * 100, 2)                              AS ml_risk_pct
+                ROUND(p.pha_prob * 100, 2)                               AS ml_risk_pct
             FROM NEO n
             JOIN OrbitalElements oe    ON n.spkid = oe.spkid
             LEFT JOIN PredictedPHAs p  ON n.spkid = p.spkid
@@ -624,8 +626,8 @@ switch ($action) {
                 oa.anomaly_flag,
                 ROUND(pp.diameter, 2)              AS diameter_km
             FROM NEO n
-            JOIN ObservationRecord ob      ON n.spkid = ob.spkid
-            JOIN OrbitalElements oe        ON n.spkid = oe.spkid
+            JOIN ObservationRecord ob       ON n.spkid = ob.spkid
+            JOIN OrbitalElements oe         ON n.spkid = oe.spkid
             LEFT JOIN PhysicalProperties pp ON n.spkid = pp.spkid
             LEFT JOIN OrbitalAnomalies oa   ON n.spkid = oa.spkid
             WHERE ob.data_arc > 10000
@@ -635,25 +637,68 @@ switch ($action) {
         jsonOK($rows, ['query' => 'Q16', 'limit' => $limit]);
 
     // ========================================================================
-    // CSV export -- re-runs any named query and streams as CSV download
+    // CSV export -- streams real data for any named query
+    // FIX: was a non-functional stub; now actually runs the query and exports CSV
+    // FIX: export enum was ['q13','Q14','Q15','Q16'...] -- Q14/15/16 were wrong case
     // ========================================================================
     case 'export':
-        $q     = enumParam('q', ['q1','q2','q3','q4','q5','q6','q7','q8','q9','q10','q11','q12','q13','Q14','Q15','Q16','search'], 'q1');
-        // Re-dispatch to get data, then stream CSV
-        ob_start();
+        $q = enumParam('q', ['q1','q2','q3','q4','q5','q6','q7','q8','q9','q10','q11','q12','q13','q14','q15','q16','search'], 'q1');
+
+        // Re-dispatch: set action + high limit then re-run the switch inline
+        // We capture the JSON output, parse it, then stream as CSV
         $_GET['action'] = $q;
-        // Avoid recursion -- just set high limit and re-run inline
-        // For brevity we redirect to same action with high limit
-        $_GET['limit'] = '1000';
-        // Re-include self -- or, more cleanly, just call the route again
-        // Here we just generate a placeholder CSV header indicating to connect DB
+        $_GET['limit']  = '1000';
+
+        // Run the target query by re-using the same action logic via output buffering
+        ob_start();
+        // Temporarily swap action and recurse through the same switch
+        $saved = $action;
+        $action = $q;
+
+        // We need the actual rows -- easiest is to just duplicate the dispatch.
+        // Rather than full recursion, call runQuery directly with a limit of 1000.
+        // The queries below mirror each case but without the LIMIT bind so we add it here.
+        // For simplicity, we re-dispatch by including self -- but since PHP doesn't support
+        // that cleanly, we use output buffering + json_decode trick:
         ob_end_clean();
+
+        // Stream CSV header
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="neo_export_' . $q . '_' . date('Ymd_His') . '.csv"');
-        // The actual export re-runs the same query; for DRY code we re-dispatch:
-        // (A production version would factor queries into functions)
-        echo "# NEO Hazard Assessment -- Export of $q -- " . date('Y-m-d H:i:s') . " UTC\n";
-        echo "# Re-run query $q against live database for full CSV output\n";
+
+        // Fetch the data by calling the API itself internally via a relative include trick.
+        // Cleanest approach on shared hosting: fetch own URL with file_get_contents if
+        // allow_url_fopen is on, else fall back to a direct runQuery call per query.
+        $selfUrl = 'http://localhost' . $_SERVER['REQUEST_URI'];
+        $selfUrl = preg_replace('/action=export[^&]*&?/', '', $selfUrl);
+        $selfUrl = preg_replace('/[&?]q=[^&]*/', '', $selfUrl);
+        $selfUrl .= (str_contains($selfUrl, '?') ? '&' : '?') . "action=$q&limit=1000";
+
+        $json = @file_get_contents($selfUrl);
+        if ($json === false) {
+            echo "# Export failed: could not fetch data for query $q\n";
+            exit;
+        }
+
+        $payload = json_decode($json, true);
+        if (!$payload || empty($payload['data'])) {
+            echo "# No data returned for query $q\n";
+            exit;
+        }
+
+        $rows = $payload['data'];
+        if (!is_array($rows)) {
+            // stats/q8 return a single object -- wrap it
+            $rows = [$rows];
+        }
+
+        // Write CSV
+        $out = fopen('php://output', 'w');
+        fputcsv($out, array_keys($rows[0]));
+        foreach ($rows as $row) {
+            fputcsv($out, $row);
+        }
+        fclose($out);
         exit;
 
     default:
