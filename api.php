@@ -7,7 +7,7 @@
 
 // -- DB CONFIG ----------------------------------------------------------------
 // Credentials live outside public_html -- never web-accessible
-require_once __DIR__ . '/../../secrets.php';
+require_once __DIR__ . '/../secrets.php';
 
 // -- CORS & JSON HEADERS ------------------------------------------------------
 header('Content-Type: application/json; charset=utf-8');
@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // -- DB CONNECTION ------------------------------------------------------------
-function getDB(): mysqli {
+function getDB() {
     static $db = null;
     if ($db === null) {
         $db = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
@@ -34,36 +34,36 @@ function getDB(): mysqli {
 }
 
 // -- HELPERS ------------------------------------------------------------------
-function jsonError(string $msg, int $code = 400) {
+function jsonError($msg, $code = 400) {
     http_response_code($code);
     echo json_encode(['error' => $msg]);
     exit;
 }
 
-function jsonOK($data, array $meta = []) {
+function jsonOK($data, $meta = []) {
     echo json_encode(['ok' => true, 'meta' => $meta, 'data' => $data], JSON_UNESCAPED_UNICODE | JSON_NUMERIC_CHECK);
     exit;
 }
 
 /** Safely cast and clamp an integer param */
-function intParam(string $key, int $default, int $min, int $max): int {
+function intParam($key, $default, $min, $max) {
     $v = isset($_GET[$key]) ? (int)$_GET[$key] : $default;
     return max($min, min($max, $v));
 }
 
 /** Safely cast a float param */
-function floatParam(string $key, float $default): float {
+function floatParam($key, $default) {
     return isset($_GET[$key]) ? (float)$_GET[$key] : $default;
 }
 
 /** Safely pull a whitelisted string param */
-function enumParam(string $key, array $allowed, string $default = ''): string {
-    $v = $_GET[$key] ?? $default;
+function enumParam($key, $allowed, $default = '') {
+    $v = isset($_GET[$key]) ? $_GET[$key] : $default;
     return in_array($v, $allowed, true) ? $v : $default;
 }
 
 /** Run query and return all rows as assoc array */
-function runQuery(string $sql, array $binds = []): array {
+function runQuery($sql, $binds = []) {
     $db   = getDB();
     $stmt = $db->prepare($sql);
     if (!$stmt) {
@@ -72,9 +72,9 @@ function runQuery(string $sql, array $binds = []): array {
     if ($binds) {
         $types = '';
         $vals  = [];
-        foreach ($binds as [$type, $val]) {
-            $types .= $type;
-            $vals[] = $val;
+        foreach ($binds as $bind) {
+            $types .= $bind[0];
+            $vals[] = $bind[1];
         }
         $stmt->bind_param($types, ...$vals);
     }
@@ -92,7 +92,7 @@ function runQuery(string $sql, array $binds = []): array {
 }
 
 // -- ROUTE --------------------------------------------------------------------
-$action = $_GET['action'] ?? '';
+$action = isset($_GET['action']) ? $_GET['action'] : '';
 
 switch ($action) {
 
@@ -116,16 +116,15 @@ switch ($action) {
             LEFT JOIN PredictedPHAs p        ON n.spkid = p.spkid
             LEFT JOIN OrbitalAnomalies oa    ON n.spkid = oa.spkid
         ");
-        jsonOK($rows[0] ?? []);
+        jsonOK(isset($rows[0]) ? $rows[0] : []);
 
     // ========================================================================
     // SEARCH -- Full multi-parameter filter (drives Search & Lookup tab)
-    // FIX: ob.condition_code filter now NULL-safe so LEFT JOIN rows aren't dropped
     // ========================================================================
     case 'search':
         $limit   = intParam('limit', 100, 10, 1000);
-        $search  = trim($_GET['search'] ?? '');
-        $class   = trim($_GET['class'] ?? '');
+        $search  = trim(isset($_GET['search']) ? $_GET['search'] : '');
+        $class   = trim(isset($_GET['class'])  ? $_GET['class']  : '');
         $pha     = enumParam('pha',     ['Y', 'N'], '');
         $pred    = enumParam('pred',    ['Y', 'N', 'disc'], '');
         $anomaly = enumParam('anomaly', ['Y', 'N'], '');
@@ -160,7 +159,6 @@ switch ($action) {
             $where[] = 'oa.anomaly_flag = ?';
             $binds[] = ['s', $anomaly];
         }
-        // FIX: was `ob.condition_code <= ?` which silently excluded NULLs from LEFT JOIN
         $where[] = '(ob.condition_code IS NULL OR ob.condition_code <= ?)';
         $binds[] = ['i', $maxCond];
         $where[] = '(oe.moid IS NULL OR oe.moid <= ?)';
@@ -323,11 +321,14 @@ switch ($action) {
         $limit  = intParam('limit', 30, 10, 100);
         $filter = enumParam('filter', ['fn', 'fp'], '');
 
-        $extraWhere = match($filter) {
-            'fn'    => "AND n.pha = 'Y' AND p.pred_pha = 'N'",
-            'fp'    => "AND n.pha = 'N' AND p.pred_pha = 'Y'",
-            default => '',
-        };
+        // FIX: replaced match() expression (PHP 8.0+) with if/elseif for PHP 7.2
+        if ($filter === 'fn') {
+            $extraWhere = "AND n.pha = 'Y' AND p.pred_pha = 'N'";
+        } elseif ($filter === 'fp') {
+            $extraWhere = "AND n.pha = 'N' AND p.pred_pha = 'Y'";
+        } else {
+            $extraWhere = '';
+        }
 
         $rows = runQuery("
             SELECT
@@ -402,7 +403,7 @@ switch ($action) {
             LEFT JOIN PredictedPHAs p        ON n.spkid = p.spkid
             LEFT JOIN OrbitalAnomalies oa    ON n.spkid = oa.spkid
         ");
-        jsonOK($rows[0] ?? [], ['query' => 'Q8']);
+        jsonOK(isset($rows[0]) ? $rows[0] : [], ['query' => 'Q8']);
 
     // ========================================================================
     // Q9 -- Gold-standard orbits: condition_code = 0
@@ -635,42 +636,23 @@ switch ($action) {
         jsonOK($rows, ['query' => 'Q16', 'limit' => $limit]);
 
     // ========================================================================
-    // CSV export -- streams real data for any named query
-    // FIX: was a non-functional stub; now actually runs the query and exports CSV
-    // FIX: export enum was ['q13','Q14','Q15','Q16'...] -- Q14/15/16 were wrong case
+    // CSV export
     // ========================================================================
     case 'export':
         $q = enumParam('q', ['q1','q2','q3','q4','q5','q6','q7','q8','q9','q10','q11','q12','q13','q14','q15','q16','search'], 'q1');
 
-        // Re-dispatch: set action + high limit then re-run the switch inline
-        // We capture the JSON output, parse it, then stream as CSV
         $_GET['action'] = $q;
         $_GET['limit']  = '1000';
 
-        // Run the target query by re-using the same action logic via output buffering
-        ob_start();
-        // Temporarily swap action and recurse through the same switch
-        $saved = $action;
-        $action = $q;
-
-        // We need the actual rows -- easiest is to just duplicate the dispatch.
-        // Rather than full recursion, call runQuery directly with a limit of 1000.
-        // The queries below mirror each case but without the LIMIT bind so we add it here.
-        // For simplicity, we re-dispatch by including self -- but since PHP doesn't support
-        // that cleanly, we use output buffering + json_decode trick:
-        ob_end_clean();
-
-        // Stream CSV header
+        // Stream CSV headers
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="neo_export_' . $q . '_' . date('Ymd_His') . '.csv"');
 
-        // Fetch the data by calling the API itself internally via a relative include trick.
-        // Cleanest approach on shared hosting: fetch own URL with file_get_contents if
-        // allow_url_fopen is on, else fall back to a direct runQuery call per query.
+        // FIX: replaced str_contains() (PHP 8.0+) with strpos() for PHP 7.2
         $selfUrl = 'http://localhost' . $_SERVER['REQUEST_URI'];
         $selfUrl = preg_replace('/action=export[^&]*&?/', '', $selfUrl);
         $selfUrl = preg_replace('/[&?]q=[^&]*/', '', $selfUrl);
-        $selfUrl .= (str_contains($selfUrl, '?') ? '&' : '?') . "action=$q&limit=1000";
+        $selfUrl .= (strpos($selfUrl, '?') !== false ? '&' : '?') . "action=$q&limit=1000";
 
         $json = @file_get_contents($selfUrl);
         if ($json === false) {
@@ -686,11 +668,9 @@ switch ($action) {
 
         $rows = $payload['data'];
         if (!is_array($rows)) {
-            // stats/q8 return a single object -- wrap it
             $rows = [$rows];
         }
 
-        // Write CSV
         $out = fopen('php://output', 'w');
         fputcsv($out, array_keys($rows[0]));
         foreach ($rows as $row) {
