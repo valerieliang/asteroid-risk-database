@@ -44,4 +44,5 @@ FIELDS TERMINATED BY ','
 OPTIONALLY ENCLOSED BY '"'
 LINES TERMINATED BY '\n'
 IGNORE 1 ROWS
-(spkid, class, moid_anomaly_yn, e_anomaly_yn, i_anomaly_yn, anomaly_flag);
+(spkid, class, moid_anomaly_yn, e_anomaly_yn, i_anomaly_yn, @flag)
+SET anomaly_flag = IF(@flag = 1, 'Y', 'N');
