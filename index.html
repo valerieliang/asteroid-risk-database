@@ -225,15 +225,6 @@ footer a{color:var(--accent);text-decoration:none;}
         </select>
       </div>
       <div class="filter-group">
-        <label>ML Prediction</label>
-        <select id="f-pred">
-          <option value="">All</option>
-          <option value="Y">Model → PHA</option>
-          <option value="N">Model → Safe</option>
-          <option value="disc">Discrepancy only</option>
-        </select>
-      </div>
-      <div class="filter-group">
         <label>Max Condition Code</label>
         <div class="range-row">
           <input type="range" id="f-cond" min="0" max="9" value="9" step="1">
@@ -255,13 +246,6 @@ footer a{color:var(--accent);text-decoration:none;}
         </div>
       </div>
       <div class="filter-group">
-        <label>Min ML Risk %</label>
-        <div class="range-row">
-          <input type="range" id="f-risk" min="0" max="100" value="0" step="1">
-          <span class="range-val" id="f-risk-val">≥ 0%</span>
-        </div>
-      </div>
-      <div class="filter-group">
         <label>Anomaly Flag</label>
         <select id="f-anomaly">
           <option value="">All</option>
@@ -273,9 +257,6 @@ footer a{color:var(--accent);text-decoration:none;}
     <div class="filter-actions">
       <button class="btn btn-primary" onclick="applyFilters()">Apply Filters</button>
       <button class="btn btn-ghost" onclick="resetFilters()">Reset All</button>
-      <button class="btn btn-danger" onclick="setQuickFilter('pha')">⚠ PHAs Only</button>
-      <button class="btn btn-ghost" onclick="setQuickFilter('citykiller')">🏙 City-Killers</button>
-      <button class="btn btn-ghost" onclick="setQuickFilter('goldstandard')">⭐ Cond=0</button>
     </div>
     <div class="topn-bar">
       <label>Results:</label>
