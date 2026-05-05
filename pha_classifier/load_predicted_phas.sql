@@ -16,7 +16,7 @@
 CREATE TABLE IF NOT EXISTS PredictedPHAs (
     spkid VARCHAR(50) PRIMARY KEY,
     pred_pha CHAR(1) NOT NULL CHECK (pred_pha IN ('Y', 'N')),
-    prediction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    pha_prob DECIMAL(5,4) NOT NULL CHECK (pha_prob >= 0 AND pha_prob <= 1),
 );
 
 -- Step 2: Clear existing predictions for fresh load (optional - comment out if UPSERT desired)
