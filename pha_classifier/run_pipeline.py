@@ -20,9 +20,9 @@ from inference import run_inference
 
 def main():
     parser = argparse.ArgumentParser(description='PHA Classification Pipeline - Random Forest')
-    parser.add_argument('--input', default='/mnt/user-data/uploads/sbdb_query_results.csv',
+    parser.add_argument('--input', default='./',
                        help='Path to input CSV file')
-    parser.add_argument('--outdir', default='/home/claude/outputs',
+    parser.add_argument('--outdir', default='./outputs',
                        help='Output directory for results')
     args = parser.parse_args()
 
