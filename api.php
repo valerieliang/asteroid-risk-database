@@ -6,10 +6,10 @@
  */
 
 // -- DB CONFIG: CHANGE AS NEEDED TO LOG IN TO YOUR LOCAL MySQL SERVER ----------------------
-define('DB_HOST', 'localhost');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-define('DB_NAME', 'neo_hazard_db');
+define('DB_HOST', 'dbase.cs.jhu.edu');
+define('DB_USER', 'user');
+define('DB_PASS', 'password');
+define('DB_NAME', 'database_name');
 
 // -- CORS & JSON HEADERS ------------------------------------------------------
 header('Content-Type: application/json; charset=utf-8');
@@ -36,13 +36,13 @@ function getDB(): mysqli {
 }
 
 // -- HELPERS ------------------------------------------------------------------
-function jsonError(string $msg, int $code = 400): never {
+function jsonError(string $msg, int $code = 400) {
     http_response_code($code);
     echo json_encode(['error' => $msg]);
     exit;
 }
 
-function jsonOK(mixed $data, array $meta = []): never {
+function jsonOK($data, array $meta = []) {
     echo json_encode(['ok' => true, 'meta' => $meta, 'data' => $data], JSON_UNESCAPED_UNICODE | JSON_NUMERIC_CHECK);
     exit;
 }
