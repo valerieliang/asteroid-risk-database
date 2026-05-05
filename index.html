@@ -216,21 +216,7 @@ footer a{color:var(--accent);text-decoration:none;}
           <option value="Atira">Atira — Inside Earth orbit (Q&lt;0.983)</option>
         </select>
       </div>
-      <div class="filter-group">
-        <label>PHA Status (Official)</label>
-        <select id="f-pha">
-          <option value="">All</option>
-          <option value="Y">✓ Confirmed PHA</option>
-          <option value="N">✗ Non-PHA</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <label>Max Condition Code</label>
-        <div class="range-row">
-          <input type="range" id="f-cond" min="0" max="9" value="9" step="1">
-          <span class="range-val" id="f-cond-val">≤ 9</span>
-        </div>
-      </div>
+
       <div class="filter-group">
         <label>Max MOID (AU)</label>
         <div class="range-row">
@@ -245,14 +231,7 @@ footer a{color:var(--accent);text-decoration:none;}
           <span class="range-val" id="f-diam-val">≥ 0.0 km</span>
         </div>
       </div>
-      <div class="filter-group">
-        <label>Anomaly Flag</label>
-        <select id="f-anomaly">
-          <option value="">All</option>
-          <option value="Y">⚡ Flagged anomaly</option>
-          <option value="N">Normal</option>
-        </select>
-      </div>
+
     </div>
     <div class="filter-actions">
       <button class="btn btn-primary" onclick="applyFilters()">Apply Filters</button>
@@ -968,15 +947,10 @@ async function applyFilters(){
   const params = {
     action: 'search',
     limit,
-    search:  document.getElementById('globalSearch').value.trim(),
-    class:   document.getElementById('f-class').value.split('—')[0].trim(),
-    pha:     document.getElementById('f-pha').value,
-    pred:    document.getElementById('f-pred').value,
-    anomaly: document.getElementById('f-anomaly').value,
-    cond:    document.getElementById('f-cond').value,
-    moid:    document.getElementById('f-moid').value,
-    diam:    document.getElementById('f-diam').value,
-    risk:    document.getElementById('f-risk').value,
+    search: document.getElementById('globalSearch').value.trim(),
+    class:  document.getElementById('f-class').value.split('—')[0].trim(),
+    moid:   document.getElementById('f-moid').value,
+    diam:   document.getElementById('f-diam').value,
   };
 
   try {
@@ -991,11 +965,9 @@ async function applyFilters(){
 }
 
 function resetFilters(){
-  ['f-class','f-pha','f-pred','f-anomaly'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('f-cond').value = 9;  document.getElementById('f-cond').dispatchEvent(new Event('input'));
-  document.getElementById('f-moid').value = 0.3;document.getElementById('f-moid').dispatchEvent(new Event('input'));
-  document.getElementById('f-diam').value = 0;  document.getElementById('f-diam').dispatchEvent(new Event('input'));
-  document.getElementById('f-risk').value = 0;  document.getElementById('f-risk').dispatchEvent(new Event('input'));
+  document.getElementById('f-class').value = '';
+  document.getElementById('f-moid').value = 0.3;  document.getElementById('f-moid').dispatchEvent(new Event('input'));
+  document.getElementById('f-diam').value = 0;    document.getElementById('f-diam').dispatchEvent(new Event('input'));
   document.getElementById('globalSearch').value = '';
   document.getElementById('search-title').textContent = 'All NEOs · Showing top 100';
   applyFilters();
@@ -1003,16 +975,10 @@ function resetFilters(){
 
 function setQuickFilter(type){
   resetFilters();
-  if (type==='pha'){
-    document.getElementById('f-pha').value = 'Y';
-    document.getElementById('search-title').textContent = 'PHAs Only — Confirmed Hazardous Objects';
-  } else if (type==='citykiller'){
+  if (type==='citykiller'){
     document.getElementById('f-moid').value = 0.05; document.getElementById('f-moid').dispatchEvent(new Event('input'));
     document.getElementById('f-diam').value = 0.14; document.getElementById('f-diam').dispatchEvent(new Event('input'));
     document.getElementById('search-title').textContent = 'City-Killers — diam>140m AND MOID<0.05 AU';
-  } else if (type==='goldstandard'){
-    document.getElementById('f-cond').value = 0; document.getElementById('f-cond').dispatchEvent(new Event('input'));
-    document.getElementById('search-title').textContent = 'Gold-Standard Orbits — Condition Code = 0';
   }
   applyFilters();
 }
@@ -1079,10 +1045,8 @@ function chipSelect(el, groupId){
    RANGE SLIDERS
 ══════════════════════════════════════════════════════════ */
 [
-  ['f-cond','f-cond-val', v => `≤ ${v}`],
   ['f-moid','f-moid-val', v => `≤ ${parseFloat(v).toFixed(3)} AU`],
   ['f-diam','f-diam-val', v => `≥ ${parseFloat(v).toFixed(1)} km`],
-  ['f-risk','f-risk-val', v => `≥ ${v}%`],
 ].forEach(([id, vid, fmt]) => {
   const el = document.getElementById(id), vl = document.getElementById(vid);
   if (!el) return;
