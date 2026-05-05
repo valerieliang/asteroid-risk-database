@@ -27,3 +27,21 @@ FIELDS TERMINATED BY ','
 OPTIONALLY ENCLOSED BY '"'
 LINES TERMINATED BY '\n'
 IGNORE 1 ROWS (spkid, data_arc, condition_code);
+
+-- Load predictions from Random Forest inference 
+LOAD DATA LOCAL INFILE './data/predictions_unlabelled.csv'
+INTO TABLE PredictedPHAs
+FIELDS TERMINATED BY ','
+OPTIONALLY ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 ROWS
+(spkid, pred_pha, pha_prob);
+
+-- Load predicted anomaly flags from anomaly flagger
+LOAD DATA LOCAL INFILE './data/anomalies_only.csv'
+INTO TABLE OrbitalAnomalies
+FIELDS TERMINATED BY ','
+OPTIONALLY ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 ROWS
+(spkid, class, moid_anomaly, e_anomaly, i_anomaly, anomaly_flag);
