@@ -119,58 +119,73 @@ switch ($action) {
         jsonOK(isset($rows[0]) ? $rows[0] : []);
 
     // ========================================================================
-    // SEARCH -- Full multi-parameter filter (drives Search & Lookup tab)
+    // LOOKUP -- Full cross-table detail for a single SPKID
     // ========================================================================
-    case 'search':
-        $limit   = intParam('limit', 100, 10, 1000);
-        $search  = trim(isset($_GET['search']) ? $_GET['search'] : '');
-        $class   = trim(isset($_GET['class'])  ? $_GET['class']  : '');
-
-        $maxMoid = floatParam('moid', 0.3);
-        $minDiam = floatParam('diam', 0.0);
-
-        $where = ['1=1'];
-        $binds = [];
-
-        if ($search !== '') {
-            $where[] = '(n.full_name LIKE ? OR n.spkid = ?)';
-            $binds[] = ['s', '%' . $search . '%'];
-            $binds[] = ['i', (int)$search];
+    case 'lookup':
+        $spkid = isset($_GET['spkid']) ? (int)$_GET['spkid'] : 0;
+        if ($spkid <= 0) {
+            jsonError('A valid spkid integer is required.', 400);
         }
-
-        if ($class !== '') {
-            $where[] = 'n.class = ?';
-            $binds[] = ['s', $class];
-        }
-
-        $where[] = '(oe.moid IS NULL OR oe.moid <= ?)';
-        $binds[] = ['d', $maxMoid];
-
-        if ($minDiam > 0) {
-            $where[] = 'pp.diameter >= ?';
-            $binds[] = ['d', $minDiam];
-        }
-
-        $whereSQL = implode(' AND ', $where);
-
-        $sql = "
+        $rows = runQuery("
             SELECT
-                n.spkid, n.full_name, n.class, n.pha,
-                ROUND(pp.diameter, 2) AS diameter_km,
-                ROUND(oe.moid, 6)     AS moid_au,
-                ROUND(oe.moid_ld, 1)  AS moid_ld
+                n.spkid,
+                n.full_name,
+                n.class,
+                n.pha,
+
+                pp.diameter,
+                pp.H,
+                pp.albedo,
+
+                oe.e,
+                oe.a,
+                oe.q,
+                ROUND(oe.q * (1 + oe.e) / (1 - oe.e), 6)  AS aphelion_au,
+                oe.i,
+                oe.om,
+                oe.w,
+                oe.ma,
+                oe.n,
+                oe.tp,
+                oe.per_y,
+                oe.moid,
+                oe.moid_ld,
+                oe.epoch,
+                oe.ref,
+
+                ob.condition_code,
+                ob.data_arc,
+                ROUND(ob.data_arc / 365.25, 2)              AS data_arc_years,
+                ob.n_obs_used,
+                ob.n_del_obs_used,
+                ob.first_obs,
+                ob.last_obs,
+
+                p.pred_pha,
+                ROUND(p.pha_prob * 100, 4)                  AS pha_prob_pct,
+                p.model_version,
+
+                oa.anomaly_flag,
+                oa.moid_anomaly_yn,
+                oa.e_anomaly_yn,
+                oa.i_anomaly_yn,
+                oa.moid_zscore,
+                oa.e_zscore,
+                oa.i_zscore
+
             FROM NEO n
-            LEFT JOIN PhysicalProperties pp ON n.spkid = pp.spkid
-            LEFT JOIN OrbitalElements oe    ON n.spkid = oe.spkid
-            WHERE $whereSQL
-            ORDER BY oe.moid ASC
-            LIMIT ?
-        ";
-
-        $binds[] = ['i', $limit];
-
-        $rows = runQuery($sql, $binds);
-        jsonOK($rows, ['count' => count($rows), 'limit' => $limit]);
+            LEFT JOIN PhysicalProperties pp  ON n.spkid = pp.spkid
+            LEFT JOIN OrbitalElements oe     ON n.spkid = oe.spkid
+            LEFT JOIN ObservationRecord ob   ON n.spkid = ob.spkid
+            LEFT JOIN PredictedPHAs p        ON n.spkid = p.spkid
+            LEFT JOIN OrbitalAnomalies oa    ON n.spkid = oa.spkid
+            WHERE n.spkid = ?
+            LIMIT 1
+        ", [['i', $spkid]]);
+        if (empty($rows)) {
+            jsonError("No NEO found with spkid $spkid.", 404);
+        }
+        jsonOK($rows[0]);
 
     // ========================================================================
     // Q1 -- PHA Threat Priority: confirmed PHAs, cond_code <= 2, order by MOID
@@ -614,7 +629,7 @@ switch ($action) {
     // CSV export
     // ========================================================================
     case 'export':
-        $q = enumParam('q', ['q1','q2','q3','q4','q5','q6','q7','q8','q9','q10','q11','q12','q13','q14','q15','q16','search'], 'q1');
+        $q = enumParam('q', ['q1','q2','q3','q4','q5','q6','q7','q8','q9','q10','q11','q12','q13','q14','q15','q16'], 'q1');
 
         $_GET['action'] = $q;
         $_GET['limit']  = '1000';
@@ -655,5 +670,5 @@ switch ($action) {
         exit;
 
     default:
-        jsonError("Unknown action '$action'. Valid actions: stats, search, q1-q16, export.", 404);
+        jsonError("Unknown action '$action'. Valid actions: stats, lookup, q1-q16, export.", 404);
 }

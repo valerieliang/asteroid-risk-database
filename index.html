@@ -200,65 +200,30 @@ footer a{color:var(--accent);text-decoration:none;}
 
   <!-- ══ SEARCH TAB ══ -->
   <div class="tab-content active" id="tab-search">
-    <div class="section-title">🔍 Global Asteroid Search &amp; Multi-Parameter Filter</div>
-    <div class="search-bar-wrap">
-      <span class="search-icon">🔍</span>
-      <input type="text" id="globalSearch" placeholder="Search by name, designation, or SPKID … e.g. 99942 Apophis · 2021 AF5">
+    <div class="section-title">🔍 NEO Lookup — Full Cross-Table Profile</div>
+    <div style="color:var(--muted);font-size:0.73rem;margin-bottom:18px;line-height:1.7;">
+      Enter a numeric <b style="color:var(--accent)">SPKID</b> to retrieve a full profile joined across all tables — physical properties, orbital elements, observation record, ML predictions, and anomaly flags.
     </div>
-    <div class="filters-grid">
-      <div class="filter-group">
-        <label>Orbital Class</label>
-        <select id="f-class">
-          <option value="">All Classes</option>
-          <option value="Apollo">Apollo — Earth-crossing (a&gt;1, q&lt;1.017)</option>
-          <option value="Aten">Aten — Earth-crossing (a&lt;1, Q&gt;0.983)</option>
-          <option value="Amor">Amor — Earth-approaching (1.017&lt;q&lt;1.3)</option>
-          <option value="Atira">Atira — Inside Earth orbit (Q&lt;0.983)</option>
-        </select>
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:24px;flex-wrap:wrap;">
+      <div class="search-bar-wrap" style="flex:1;min-width:220px;margin-bottom:0;">
+        <span class="search-icon">🔭</span>
+        <input type="text" id="globalSearch" placeholder="Enter SPKID … e.g. 2099942 (Apophis)" inputmode="numeric">
       </div>
-
-      <div class="filter-group">
-        <label>Max MOID (AU)</label>
-        <div class="range-row">
-          <input type="range" id="f-moid" min="0" max="0.3" value="0.3" step="0.005">
-          <span class="range-val" id="f-moid-val">≤ 0.300 AU</span>
-        </div>
-      </div>
-      <div class="filter-group">
-        <label>Min Diameter (km)</label>
-        <div class="range-row">
-          <input type="range" id="f-diam" min="0" max="50" value="0" step="0.5">
-          <span class="range-val" id="f-diam-val">≥ 0.0 km</span>
-        </div>
-      </div>
-
+      <button class="btn btn-primary" onclick="doLookup()">Look Up</button>
+      <button class="btn btn-ghost" onclick="clearLookup()">Clear</button>
     </div>
-    <div class="filter-actions">
-      <button class="btn btn-primary" onclick="applyFilters()">Apply Filters</button>
-      <button class="btn btn-ghost" onclick="resetFilters()">Reset All</button>
+    <div style="font-size:0.65rem;color:var(--muted);margin-bottom:20px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+      <span>Try:</span>
+      <button class="chip" style="font-size:0.63rem;padding:3px 11px;" onclick="quickLookup('2099942')">2099942 · Apophis</button>
+      <button class="chip" style="font-size:0.63rem;padding:3px 11px;" onclick="quickLookup('2001566')">2001566 · Icarus</button>
+      <button class="chip" style="font-size:0.63rem;padding:3px 11px;" onclick="quickLookup('2000433')">2000433 · Eros</button>
     </div>
-    <div class="topn-bar">
-      <label>Results:</label>
-      <div class="chips" id="search-chips">
-        <button class="chip" onclick="chipSelect(this,'search-chips');applyFilters()">50</button>
-        <button class="chip active" onclick="chipSelect(this,'search-chips');applyFilters()">100</button>
-        <button class="chip" onclick="chipSelect(this,'search-chips');applyFilters()">250</button>
-        <button class="chip" onclick="chipSelect(this,'search-chips');applyFilters()">500</button>
-      </div>
-      <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="exportCSV('search')">⬇ Export CSV</button>
-    </div>
-    <div class="results-box">
-      <div class="results-header">
-        <div class="results-title" id="search-title">All NEOs · Showing top 100</div>
-        <div class="results-meta">
-          <span>Rows: <b id="row-count">—</b></span>
-        </div>
-      </div>
-      <div id="search-result"></div>
+    <div id="search-result">
+      <div class="empty"><div class="empty-icon">🔭</div><div>Enter a SPKID above to load the full NEO profile.</div></div>
     </div>
   </div>
 
-  <!-- ══ THREAT TAB ══ -->
+    <!-- ══ THREAT TAB ══ -->
   <div class="tab-content" id="tab-threat">
     <div class="section-title">🎯 Threat Prioritization Queries</div>
     <div class="qgrid">
@@ -1196,51 +1161,159 @@ async function loadStats(){
 }
 
 /* ══════════════════════════════════════════════════════════
-   SEARCH
+   SPKID LOOKUP
 ══════════════════════════════════════════════════════════ */
-async function applyFilters(){
-  const el    = document.getElementById('search-result');
-  const title = document.getElementById('search-title');
-  const limit = document.querySelector('#search-chips .chip.active')?.textContent || 100;
+async function doLookup(){
+  const raw = document.getElementById('globalSearch').value.trim();
+  const spkid = parseInt(raw);
+  const el = document.getElementById('search-result');
+  if (!spkid || isNaN(spkid)){
+    el.innerHTML = errBox('Please enter a valid numeric SPKID.');
+    return;
+  }
   el.innerHTML = loader();
+  try {
+    const json = await apiFetch({action:'lookup', spkid});
+    el.innerHTML = renderProfile(json.data);
+  } catch(e){
+    el.innerHTML = errBox('Lookup error: ' + e.message);
+  }
+}
 
-  const params = {
-    action: 'search',
-    limit,
-    search: document.getElementById('globalSearch').value.trim(),
-    class:  document.getElementById('f-class').value.split('—')[0].trim(),
-    moid:   document.getElementById('f-moid').value,
-    diam:   document.getElementById('f-diam').value,
+function clearLookup(){
+  document.getElementById('globalSearch').value = '';
+  document.getElementById('search-result').innerHTML =
+    '<div class="empty"><div class="empty-icon">🔭</div><div>Enter a SPKID above to load the full NEO profile.</div></div>';
+}
+
+function quickLookup(spkid){
+  document.getElementById('globalSearch').value = spkid;
+  doLookup();
+}
+
+document.getElementById('globalSearch').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLookup();
+});
+
+function renderProfile(r){
+  if (!r) return errBox('No data returned.');
+
+  const val  = (v, unit='') => (v === null || v === undefined) ? '<span style="color:var(--muted)">—</span>' : `<span style="color:var(--heading)">${v}</span>${unit ? '<span style="color:var(--muted);font-size:0.65rem"> '+unit+'</span>' : ''}`;
+  const flag = (v, yes, no, yesClass='warn', noClass='muted') =>
+    v === 'Y' ? `<span class="pill p-${yesClass}">${yes}</span>` : `<span class="pill p-${noClass}">${no}</span>`;
+
+  // ── Risk gauge bar ──
+  const riskPct = parseFloat(r.pha_prob_pct) || 0;
+  const riskCol = riskPct > 70 ? 'var(--danger)' : riskPct > 35 ? 'var(--accent2)' : 'var(--safe)';
+  const riskBar = `<div style="display:flex;align-items:center;gap:10px;margin-top:4px;">
+    <div style="flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;">
+      <div style="width:${Math.min(riskPct,100)}%;height:100%;background:${riskCol};border-radius:3px;"></div>
+    </div>
+    <span style="font-size:0.72rem;font-weight:700;color:${riskCol};min-width:42px">${riskPct.toFixed(2)}%</span>
+  </div>`;
+
+  // ── Header hero ──
+  const phaClass = r.pha === 'Y' ? 'danger' : 'safe';
+  const hero = `
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:24px;padding:20px 24px;background:linear-gradient(135deg,var(--surface2) 0%,var(--surface) 100%);border:1px solid rgba(0,180,255,0.2);border-radius:14px;">
+    <div>
+      <div style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;color:var(--heading);margin-bottom:6px;">${r.full_name || 'SPKID '+r.spkid}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+        <span class="pill p-blue">${r.class || '?'}</span>
+        <span class="pill p-${phaClass}">${r.pha === 'Y' ? '⚠ Confirmed PHA' : '✓ Non-PHA'}</span>
+        ${r.pred_pha === 'Y' ? '<span class="pill p-warn">🤖 ML: PHA</span>' : '<span class="pill p-muted">🤖 ML: Non-PHA</span>'}
+        ${r.anomaly_flag === 'Y' ? '<span class="pill p-warn">⚡ Anomaly Flagged</span>' : ''}
+      </div>
+    </div>
+    <div style="text-align:right;font-size:0.68rem;color:var(--muted);">
+      <div>SPKID <span style="color:var(--accent);font-weight:700">${r.spkid}</span></div>
+      ${r.last_obs ? `<div style="margin-top:4px;">Last obs: <span style="color:var(--text)">${r.last_obs}</span></div>` : ''}
+    </div>
+  </div>`;
+
+  // ── Section helper ──
+  const section = (icon, title, content) => `
+  <div style="margin-bottom:18px;">
+    <div style="font-family:'Syne',sans-serif;font-size:0.78rem;font-weight:700;color:var(--accent);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px;padding-bottom:8px;border-bottom:1px solid var(--border);">${icon} ${title}</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;">${content}</div>
+  </div>`;
+
+  // ── Stat tile helper ──
+  const tile = (label, value, unit='', accent='var(--heading)') => `
+  <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+    <div style="font-size:0.6rem;color:var(--muted);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:5px;">${label}</div>
+    <div style="font-size:0.92rem;font-weight:700;color:${accent};">${value === null || value === undefined ? '<span style="color:var(--muted)">—</span>' : value}${unit ? `<span style="font-size:0.65rem;color:var(--muted);font-weight:400"> ${unit}</span>` : ''}</div>
+  </div>`;
+
+  // ── Anomaly flags ──
+  const anomBadge = (label, yn, zscore) => {
+    if (yn === null) return '';
+    const active = yn === 'Y';
+    const col = active ? 'var(--accent2)' : 'var(--muted)';
+    const z = zscore !== null ? ` <span style="font-size:0.6rem;color:var(--muted)">(z=${parseFloat(zscore).toFixed(2)})</span>` : '';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--surface2);border:1px solid ${active ? 'rgba(255,107,53,0.3)' : 'var(--border)'};border-radius:8px;">
+      <span style="font-size:0.8rem">${active ? '⚡' : '·'}</span>
+      <span style="font-size:0.72rem;color:${col};font-weight:${active?700:400}">${label}</span>${z}
+    </div>`;
   };
 
-  try {
-    const json = await apiFetch(params);
-    const rows = json.data;
-    document.getElementById('row-count').textContent = rows.length;
-    title.textContent = `Filtered Results · ${rows.length} rows`;
-    el.innerHTML = rows.length === 0 ? empty() : TABLE_BUILDERS.search(rows);
-  } catch(e){
-    el.innerHTML = errBox('Search error: ' + e.message);
-  }
-}
+  const physSection = section('⚖', 'Physical Properties',
+    tile('Diameter', r.diameter !== null ? parseFloat(r.diameter).toFixed(3) : null, 'km', 'var(--accent2)') +
+    tile('Abs. Magnitude H', r.H, 'mag') +
+    tile('Albedo', r.albedo !== null ? parseFloat(r.albedo).toFixed(4) : null)
+  );
 
-function resetFilters(){
-  document.getElementById('f-class').value = '';
-  document.getElementById('f-moid').value = 0.3;  document.getElementById('f-moid').dispatchEvent(new Event('input'));
-  document.getElementById('f-diam').value = 0;    document.getElementById('f-diam').dispatchEvent(new Event('input'));
-  document.getElementById('globalSearch').value = '';
-  document.getElementById('search-title').textContent = 'All NEOs · Showing top 100';
-  applyFilters();
-}
+  const orbSection = section('🪐', 'Orbital Elements',
+    tile('Eccentricity e', r.e !== null ? parseFloat(r.e).toFixed(6) : null, '', r.e > 0.9 ? 'var(--danger)' : 'var(--heading)') +
+    tile('Semi-Major Axis a', r.a !== null ? parseFloat(r.a).toFixed(6) : null, 'AU', 'var(--accent)') +
+    tile('Perihelion q', r.q !== null ? parseFloat(r.q).toFixed(6) : null, 'AU', r.q < 0.3 ? 'var(--danger)' : r.q < 1.0 ? 'var(--accent2)' : 'var(--text)') +
+    tile('Aphelion Q', r.aphelion_au !== null ? parseFloat(r.aphelion_au).toFixed(6) : null, 'AU') +
+    tile('Inclination i', r.i !== null ? parseFloat(r.i).toFixed(4) : null, '°') +
+    tile('MOID', r.moid !== null ? parseFloat(r.moid).toFixed(6) : null, 'AU', r.moid < 0.05 ? 'var(--danger)' : 'var(--text)') +
+    tile('MOID', r.moid_ld !== null ? parseFloat(r.moid_ld).toFixed(2) : null, 'LD') +
+    tile('Orbital Period', r.per_y !== null ? parseFloat(r.per_y).toFixed(4) : null, 'yr') +
+    tile('Mean Motion n', r.n !== null ? parseFloat(r.n).toFixed(6) : null, '°/day') +
+    tile('Longitude Asc. Node Ω', r.om !== null ? parseFloat(r.om).toFixed(4) : null, '°') +
+    tile('Arg. of Perihelion ω', r.w !== null ? parseFloat(r.w).toFixed(4) : null, '°') +
+    tile('Mean Anomaly M', r.ma !== null ? parseFloat(r.ma).toFixed(4) : null, '°') +
+    tile('Epoch', r.epoch) +
+    tile('Ref', r.ref)
+  );
 
-function setQuickFilter(type){
-  resetFilters();
-  if (type==='citykiller'){
-    document.getElementById('f-moid').value = 0.05; document.getElementById('f-moid').dispatchEvent(new Event('input'));
-    document.getElementById('f-diam').value = 0.14; document.getElementById('f-diam').dispatchEvent(new Event('input'));
-    document.getElementById('search-title').textContent = 'City-Killers — diam>140m AND MOID<0.05 AU';
-  }
-  applyFilters();
+  const obsSection = section('🔭', 'Observation Record',
+    tile('Condition Code', r.condition_code, '', r.condition_code === 0 ? 'var(--safe)' : r.condition_code <= 2 ? 'var(--text)' : 'var(--accent2)') +
+    tile('Data Arc', r.data_arc !== null ? (+r.data_arc).toLocaleString() : null, 'days') +
+    tile('Data Arc', r.data_arc_years !== null ? parseFloat(r.data_arc_years).toFixed(1) : null, 'yr') +
+    tile('Obs Used', r.n_obs_used !== null ? (+r.n_obs_used).toLocaleString() : null) +
+    tile('Delay Obs Used', r.n_del_obs_used) +
+    tile('First Obs', r.first_obs) +
+    tile('Last Obs', r.last_obs)
+  );
+
+  const mlSection = `
+  <div style="margin-bottom:18px;">
+    <div style="font-family:'Syne',sans-serif;font-size:0.78rem;font-weight:700;color:var(--accent);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px;padding-bottom:8px;border-bottom:1px solid var(--border);">🤖 ML Risk Assessment</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;">
+      ${tile('Predicted PHA', r.pred_pha === 'Y' ? '⚠ Yes' : r.pred_pha === 'N' ? '✓ No' : null, '', r.pred_pha === 'Y' ? 'var(--accent2)' : 'var(--safe)')}
+      ${tile('Model Version', r.model_version)}
+    </div>
+    <div style="margin-top:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;">
+      <div style="font-size:0.6rem;color:var(--muted);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:6px;">PHA Probability</div>
+      ${riskBar}
+    </div>
+  </div>`;
+
+  const anomSection = `
+  <div style="margin-bottom:18px;">
+    <div style="font-family:'Syne',sans-serif;font-size:0.78rem;font-weight:700;color:var(--accent);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px;padding-bottom:8px;border-bottom:1px solid var(--border);">⚡ Orbital Anomaly Flags</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;">
+      ${anomBadge('MOID Anomaly',        r.moid_anomaly_yn, r.moid_zscore)}
+      ${anomBadge('Eccentricity Anomaly',r.e_anomaly_yn,    r.e_zscore)}
+      ${anomBadge('Inclination Anomaly', r.i_anomaly_yn,    r.i_zscore)}
+    </div>
+  </div>`;
+
+  return `<div style="padding:4px 0;">${hero}${physSection}${orbSection}${obsSection}${mlSection}${anomSection}</div>`;
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -1302,23 +1375,6 @@ function chipSelect(el, groupId){
 }
 
 /* ══════════════════════════════════════════════════════════
-   RANGE SLIDERS
-══════════════════════════════════════════════════════════ */
-[
-  ['f-moid','f-moid-val', v => `≤ ${parseFloat(v).toFixed(3)} AU`],
-  ['f-diam','f-diam-val', v => `≥ ${parseFloat(v).toFixed(1)} km`],
-].forEach(([id, vid, fmt]) => {
-  const el = document.getElementById(id), vl = document.getElementById(vid);
-  if (!el) return;
-  const upd = () => {
-    vl.textContent = fmt(el.value);
-    const p = (el.value - el.min) / (el.max - el.min) * 100;
-    el.style.background = `linear-gradient(to right,var(--accent) ${p}%,var(--surface2) ${p}%)`;
-  };
-  el.addEventListener('input', upd); upd();
-});
-
-/* ══════════════════════════════════════════════════════════
    CSV EXPORT
 ══════════════════════════════════════════════════════════ */
 function exportCSV(action){
@@ -1326,18 +1382,11 @@ function exportCSV(action){
   window.open(`${API}?action=export&q=${action}&limit=${limit}`, '_blank');
 }
 
-/* ══════════════════════════════════════════════════════════
-   SEARCH ON ENTER
-══════════════════════════════════════════════════════════ */
-document.getElementById('globalSearch').addEventListener('keydown', e => {
-  if (e.key === 'Enter') applyFilters();
-});
 
 /* ══════════════════════════════════════════════════════════
    INIT
 ══════════════════════════════════════════════════════════ */
 loadStats();
-applyFilters(); // load search tab on startup
 </script>
 </body>
 </html>
