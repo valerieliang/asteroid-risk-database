@@ -115,7 +115,7 @@ define('DB_NAME', 'neo_hazard_db');
 cd C:/xampp/htdocs
 mkdir public_html
 cd public_html
-# Copy all .php, .html, .js, .css files here
+# Copy all files here
 ```
 
 **Permissions (Linux/Mac):**
