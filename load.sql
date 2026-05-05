@@ -35,7 +35,7 @@ FIELDS TERMINATED BY ','
 OPTIONALLY ENCLOSED BY '"'
 LINES TERMINATED BY '\n'
 IGNORE 1 ROWS
-(spkid, pred_pha, pha_prob);
+(spkid, @dummy, @dummy, pha_prob, pred_pha);
 
 -- Load predicted anomaly flags from anomaly flagger
 LOAD DATA LOCAL INFILE 'data/anomalies_only.csv'
@@ -44,4 +44,4 @@ FIELDS TERMINATED BY ','
 OPTIONALLY ENCLOSED BY '"'
 LINES TERMINATED BY '\n'
 IGNORE 1 ROWS
-(spkid, class, moid_anomaly, e_anomaly, i_anomaly, anomaly_flag);
+(spkid, class, moid_anomaly_yn, e_anomaly_yn, i_anomaly_yn, anomaly_flag);
