@@ -13,6 +13,12 @@ df = pd.read_csv(DATA_PATH)
 # Drop missing values
 df = df.dropna(subset=["moid"])
 
+# Convert moid to numeric, coercing errors to NaN
+df["moid"] = pd.to_numeric(df["moid"], errors='coerce')
+
+# Drop any rows where conversion failed
+df = df.dropna(subset=["moid"])
+
 # Normalize MOID for visualization
 moid = df["moid"]
 
@@ -31,21 +37,16 @@ n = len(df)
 grid_x = np.arange(n)
 grid_y = np.zeros(n)
 
-plt.figure(figsize=(12, 3))
+fig, ax = plt.subplots(figsize=(12, 3))
 
-plt.scatter(grid_x, grid_y, s=sizes, c=colors, alpha=0.7, edgecolors='k')
-
-# Optional labels (comment out if too crowded)
-# for i, row in df.iterrows():
-#     plt.text(i, 0, str(row["spkid"]), fontsize=6)
+scatter = ax.scatter(grid_x, grid_y, s=sizes, c=moid, cmap='RdYlGn', alpha=0.7, edgecolors='k')
 
 plt.title("MOID Bubble Grid (NEO Risk Visualization)")
 plt.xlabel("Objects")
 plt.yticks([])
 
-# Colorbar
-sm = plt.cm.ScalarMappable(cmap="RdYlGn", norm=plt.Normalize(vmin=moid.min(), vmax=moid.max()))
-plt.colorbar(sm, label="MOID (AU)")
+# Colorbar (now using the scatter plot as the mappable)
+plt.colorbar(scatter, label="MOID (AU)")
 
 os.makedirs("./visualization", exist_ok=True)
 plt.savefig(OUTPUT_PATH, dpi=300, bbox_inches='tight')
