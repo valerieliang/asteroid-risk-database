@@ -5,11 +5,9 @@
  * Place in same directory as index.html. Configure DB credentials below.
  */
 
-// -- DB CONFIG: CHANGE AS NEEDED TO LOG IN TO YOUR LOCAL MySQL SERVER ----------------------
-define('DB_HOST', 'dbase.cs.jhu.edu');
-define('DB_USER', 'user');
-define('DB_PASS', 'password');
-define('DB_NAME', 'database_name');
+// -- DB CONFIG ----------------------------------------------------------------
+// Credentials live outside public_html -- never web-accessible
+require_once __DIR__ . '/../../secrets.php';
 
 // -- CORS & JSON HEADERS ------------------------------------------------------
 header('Content-Type: application/json; charset=utf-8');
