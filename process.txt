@@ -37,8 +37,35 @@ Outputs:
 - data/orbital_elements_cleaned.csv    (spkid, e, q, i, moid, moid_ld)
 - data/observation_record_cleaned.csv  (spkid, data_arc, condition_code)
 
-5. Usage
---------------------
-1. Download sbdb_query_results.csv from JPL SBDB API with NEOs only.
-2. Place file in data/ directory.
+5. ML Pipeline for Predictions & Anomalies
+-------------------------------------------
+After cleaning, run the following to generate predictions and anomaly flags:
+
+5a. PHA Classifier (Random Forest)
+    python .\pha_classifier\run_pipeline.py
+    
+    Output: data/predictions_unlabelled.csv
+    Columns: spkid, full_name, class, pha_prob, pred_pha
+
+5b. Anomaly Flagger (Statistical Detection)
+    python .\anomaly_flagger\flagger.py
+    
+    Output: data/anomalies_only.csv
+    Columns: spkid, class, moid_anomaly, e_anomaly, i_anomaly, anomaly_flag
+
+6. Database Loading Order
+-------------------------
+1. Run MySQL setup: mysql -u username -p database_name < setup.sql
+2. Load cleaned data with: mysql -u username -p database_name < load.sql
+3. Verify with queries: mysql -u username -p database_name < queries.sql
+
+7. Full Execution Pipeline (Complete)
+--------------------------------------
+1. Download sbdb_query_results.csv from JPL SBDB API with NEOs only
+2. Place file in data/ directory
 3. Run: python process.py --input data/sbdb_query_results.csv
+4. Run: python .\pha_classifier\run_pipeline.py
+5. Run: python .\anomaly_flagger\flagger.py
+6. Load into MySQL: mysql -u username -p database_name < load.sql
+
+Note: setup.sql must be run once before the first data load. cleanup.sql removes all tables for a fresh rebuild.
