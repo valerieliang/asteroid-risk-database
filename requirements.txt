@@ -1,0 +1,12 @@
+# requirements.txt
+# Dependencies for NEO Hazard Assessment Database processing and PHA Classification Pipeline
+
+# Data processing and analysis
+pandas>=1.5.0
+numpy>=1.23.0
+
+# Machine learning (Random Forest classifier)
+scikit-learn>=1.2.0
+
+# Visualization (for evaluation plots)
+matplotlib>=3.6.0
