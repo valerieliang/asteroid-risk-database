@@ -3,6 +3,3 @@ venv
 old 
 
 secrets.py
-
-*.json
-

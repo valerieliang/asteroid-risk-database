@@ -1,0 +1,14 @@
+{
+  "model": "Random Forest",
+  "roc_auc": 0.9997,
+  "avg_precision": 0.9985,
+  "cv_roc_auc": 0.9996,
+  "cv_std": 0.0005,
+  "pha_precision": 0.996,
+  "pha_recall": 0.9921,
+  "pha_f1": 0.9941,
+  "non_pha_precision": 0.9995,
+  "non_pha_recall": 0.9997,
+  "non_pha_f1": 0.9996,
+  "accuracy": 0.9993
+}
