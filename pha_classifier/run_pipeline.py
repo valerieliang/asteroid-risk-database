@@ -20,9 +20,9 @@ from inference import run_inference
 
 def main():
     parser = argparse.ArgumentParser(description='PHA Classification Pipeline - Random Forest')
-    parser.add_argument('--input', default='./',
+    parser.add_argument('--input', default='./data/sbdb_query_results.csv',
                        help='Path to input CSV file')
-    parser.add_argument('--outdir', default='./outputs',
+    parser.add_argument('--outdir', default='./data',
                        help='Output directory for results')
     args = parser.parse_args()
 
@@ -59,8 +59,8 @@ def main():
     # 5. Generate plots
     print("\n[4] Generating diagnostic plots...")
     plot_diagnostics(result, X_test, y_test,
-                    f'{args.outdir}/diagnostics.png')
-    plot_feature_importance(result, f'{args.outdir}/feature_importance.png')
+                    f'./diagnostics.png')
+    plot_feature_importance(result, f'./feature_importance.png')
 
     # 6. Run inference
     print("\n[5] Running inference on unlabelled objects...")
@@ -68,7 +68,7 @@ def main():
 
     # 7. Save summary
     print("\n[6] Saving summary JSON...")
-    summary = save_summary(result, f'{args.outdir}/model_summary.json')
+    summary = save_summary(result, f'./model_summary.json')
     
     print("\n" + "=" * 52)
     print("  Model Performance Summary")

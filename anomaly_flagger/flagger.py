@@ -73,9 +73,9 @@ def run_all():
     anomalies_df["e_is_anomaly"] = anomalies_df["e_anomaly_yn"]
     anomalies_df["i_is_anomaly"] = anomalies_df["i_anomaly_yn"]
     
-    # Save to current folder (where the script is running from)
+    # Save to data folder 
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    output_path = os.path.join(current_dir, "anomalies_only.csv")
+    output_path = os.path.join(current_dir, "../data", "anomalies_only.csv")
     
     # Select which columns to save
     columns_to_save = [
