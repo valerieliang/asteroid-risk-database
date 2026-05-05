@@ -1,219 +1,1138 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>NEO · minimalist defense</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEO Sentry · Planetary Defense Interface</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#020b14;--surface:#061624;--surface2:#0b2035;--border:rgba(0,180,255,0.12);
+  --accent:#00b4ff;--accent2:#ff6b35;--danger:#ff3b3b;--safe:#00e09a;
+  --text:#c8dde8;--muted:#4a7a93;--heading:#e8f4fb;
+}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'Space Mono',monospace;font-size:13px;line-height:1.6;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 20% 10%,rgba(0,60,120,0.35) 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 80% 80%,rgba(0,30,80,0.3) 0%,transparent 60%);pointer-events:none;z-index:0;}
+.shell{position:relative;z-index:1;max-width:1480px;margin:0 auto;padding:24px 20px 60px;}
 
-        body {
-            font-family: 'Inter', sans-serif;
-            background: #f6f9fc;
-            color: #0f2c38;
-            padding: 1.8rem 1.2rem;
-        }
+/* HEADER */
+header{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap;padding:36px 40px;background:linear-gradient(135deg,rgba(6,22,36,0.97) 0%,rgba(3,14,26,0.93) 100%);border:1px solid var(--border);border-radius:20px;margin-bottom:28px;position:relative;overflow:hidden;}
+header::after{content:'';position:absolute;top:-60px;right:-60px;width:320px;height:320px;background:radial-gradient(circle,rgba(0,180,255,0.07) 0%,transparent 70%);pointer-events:none;}
+.header-left h1{font-family:'Syne',sans-serif;font-size:clamp(1.4rem,3vw,2.2rem);font-weight:800;color:var(--heading);letter-spacing:-0.5px;display:flex;align-items:center;gap:14px;}
+.header-left p{margin-top:10px;color:var(--muted);font-size:0.75rem;max-width:560px;line-height:1.7;}
+.badge-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;}
+.badge{padding:5px 14px;border-radius:40px;font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;border:1px solid;}
+.badge-blue{color:var(--accent);border-color:rgba(0,180,255,0.35);background:rgba(0,180,255,0.08);}
+.badge-orange{color:var(--accent2);border-color:rgba(255,107,53,0.35);background:rgba(255,107,53,0.08);}
+.badge-green{color:var(--safe);border-color:rgba(0,224,154,0.35);background:rgba(0,224,154,0.08);}
+.badge-red{color:var(--danger);border-color:rgba(255,59,59,0.35);background:rgba(255,59,59,0.08);}
+.live-clock{font-family:'Space Mono',monospace;font-size:0.72rem;color:var(--muted);text-align:right;line-height:1.8;}
+.live-clock .clock-time{font-size:1.3rem;color:var(--accent);font-weight:700;}
 
-        /* container — very lean */
-        .container {
-            max-width: 1280px;
-            margin: 0 auto;
-        }
+/* STATS */
+.stats-row{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:28px;}
+.stat-card{flex:1;min-width:130px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;text-align:center;transition:border-color .3s;}
+.stat-card .sv{font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;line-height:1.1;margin-bottom:4px;}
+.stat-card .sl{font-size:0.62rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+.stat-blue .sv{color:var(--accent);}.stat-orange .sv{color:var(--accent2);}.stat-red .sv{color:var(--danger);}.stat-green .sv{color:var(--safe);}
 
-        /* header — minimal but sharp */
-        .top {
-            margin-bottom: 2rem;
-            border-bottom: 1px solid #dfe8ef;
-            padding-bottom: 1rem;
-        }
+/* TABS */
+.tabs-wrapper{background:var(--surface);border:1px solid var(--border);border-radius:16px;margin-bottom:24px;overflow:hidden;}
+.tabs-nav{display:flex;overflow-x:auto;border-bottom:1px solid var(--border);scrollbar-width:none;}
+.tabs-nav::-webkit-scrollbar{display:none;}
+.tab-btn{flex-shrink:0;padding:14px 20px;background:none;border:none;color:var(--muted);font-family:'Space Mono',monospace;font-size:0.72rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;cursor:pointer;border-bottom:3px solid transparent;transition:color .2s,border-color .2s,background .2s;white-space:nowrap;}
+.tab-btn:hover{color:var(--text);background:rgba(0,180,255,0.04);}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);background:rgba(0,180,255,0.07);}
+.tab-content{display:none;padding:28px 32px 32px;}
+.tab-content.active{display:block;}
 
-        .top h1 {
-            font-weight: 600;
-            font-size: 1.6rem;
-            letter-spacing: -0.2px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: #155f6e;
-        }
+/* SEARCH */
+.search-bar-wrap{position:relative;margin-bottom:22px;}
+.search-icon{position:absolute;left:18px;top:50%;transform:translateY(-50%);color:var(--accent);font-size:1rem;pointer-events:none;}
+#globalSearch{width:100%;padding:16px 18px 16px 48px;background:var(--surface2);border:1px solid rgba(0,180,255,0.25);border-radius:12px;color:var(--heading);font-family:'Space Mono',monospace;font-size:0.85rem;transition:border-color .2s,box-shadow .2s;}
+#globalSearch:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,180,255,0.1);}
+#globalSearch::placeholder{color:var(--muted);}
 
-        .top h1 i {
-            color: #d45c1e;
-            font-size: 1.5rem;
-        }
+.filters-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;margin-bottom:20px;}
+.filter-group label{display:block;font-size:0.65rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;}
+.filter-group select,.filter-group input[type=number]{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Space Mono',monospace;font-size:0.75rem;padding:9px 12px;cursor:pointer;transition:border-color .2s;}
+.filter-group select:focus,.filter-group input:focus{outline:none;border-color:var(--accent);}
+.filter-group select option{background:var(--surface);}
+.range-row{display:flex;align-items:center;gap:10px;}
+.range-val{font-size:0.7rem;color:var(--accent);min-width:64px;text-align:right;}
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;background:var(--surface2);border-radius:4px;cursor:pointer;border:none;padding:0;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--accent);border:2px solid var(--bg);cursor:pointer;box-shadow:0 0 8px rgba(0,180,255,0.5);}
 
-        .top p {
-            font-size: 0.85rem;
-            color: #4d6f7e;
-            margin-top: 6px;
-        }
+.filter-actions{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px;}
+.btn{padding:10px 22px;border-radius:8px;border:none;font-family:'Space Mono',monospace;font-size:0.72rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;cursor:pointer;transition:all .2s;}
+.btn-primary{background:var(--accent);color:var(--bg);}
+.btn-primary:hover{background:#33c6ff;box-shadow:0 4px 20px rgba(0,180,255,0.35);}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
+.btn-ghost:hover{color:var(--text);border-color:var(--accent);}
+.btn-danger{background:transparent;color:var(--danger);border:1px solid rgba(255,59,59,0.3);}
+.btn-danger:hover{background:rgba(255,59,59,0.1);}
+.btn-sm{padding:5px 13px;font-size:0.63rem;}
 
-        /* ultra minimal query grid */
-        .query-strip {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 2rem;
-            background: transparent;
-        }
+/* SECTION TITLE */
+.section-title{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;color:var(--heading);margin-bottom:18px;padding-bottom:10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
 
-        .query-pill {
-            background: white;
-            border: 1px solid #dce7ef;
-            border-radius: 60px;
-            padding: 0.5rem 1rem;
-            font-size: 0.75rem;
-            font-weight: 500;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            transition: all 0.1s ease;
-            color: #1a4b5c;
-        }
+/* QUERY CARDS */
+.qgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-bottom:24px;}
+.qcard{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px 18px;cursor:pointer;transition:all .2s;display:flex;align-items:flex-start;gap:14px;}
+.qcard:hover{border-color:rgba(0,180,255,0.4);background:rgba(0,180,255,0.05);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.3);}
+.qcard.active-q{border-color:var(--accent);background:rgba(0,180,255,0.08);}
+.qcard-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;}
+.qi-o{background:rgba(255,107,53,0.15);}.qi-b{background:rgba(0,180,255,0.1);}.qi-r{background:rgba(255,59,59,0.12);}.qi-g{background:rgba(0,224,154,0.1);}
+.qcard-title{font-weight:700;font-size:0.8rem;color:var(--heading);margin-bottom:5px;}
+.qcard-desc{font-size:0.67rem;color:var(--muted);line-height:1.55;}
 
-        .query-pill i {
-            font-size: 0.8rem;
-            color: #ce6f2e;
-        }
+/* TOP N */
+.topn-bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:11px 16px;}
+.topn-bar label{font-size:0.66rem;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase;white-space:nowrap;}
+.chips{display:flex;gap:8px;flex-wrap:wrap;}
+.chip{padding:5px 14px;border-radius:20px;border:1px solid var(--border);font-family:'Space Mono',monospace;font-size:0.68rem;font-weight:700;color:var(--muted);background:transparent;cursor:pointer;transition:all .15s;}
+.chip:hover{color:var(--text);border-color:var(--accent);}
+.chip.active{background:var(--accent);color:var(--bg);border-color:var(--accent);}
 
-        .query-pill:hover {
-            background: #eef3f8;
-            border-color: #c0ced9;
-        }
+/* RESULTS */
+.results-box{border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.results-header{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;background:rgba(0,180,255,0.06);border-bottom:1px solid var(--border);flex-wrap:wrap;gap:10px;}
+.results-title{font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;color:var(--heading);}
+.results-meta{font-size:0.65rem;color:var(--muted);display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
 
-        .pill-active {
-            background: #e4eef5;
-            border-color: #ce6f2e;
-            box-shadow: inset 0 0 0 1px #e6a06b;
-        }
+/* TABLE */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:0.72rem;}
+thead{background:rgba(0,180,255,0.08);}
+th{padding:11px 14px;text-align:left;font-size:0.64rem;letter-spacing:0.8px;text-transform:uppercase;color:var(--accent);font-weight:700;white-space:nowrap;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;}
+th:hover{color:var(--heading);}
+td{padding:10px 14px;border-bottom:1px solid rgba(0,180,255,0.06);color:var(--text);white-space:nowrap;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(0,180,255,0.04);}
 
-        /* result panel — almost no visual weight */
-        .result-card {
-            background: white;
-            border-radius: 20px;
-            padding: 1.4rem;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.02), 0 0 0 1px #e9f0f4;
-        }
+/* PILLS */
+.pill{display:inline-block;padding:2px 10px;border-radius:20px;font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;}
+.p-danger{background:rgba(255,59,59,0.15);color:var(--danger);border:1px solid rgba(255,59,59,0.3);}
+.p-safe{background:rgba(0,224,154,0.12);color:var(--safe);border:1px solid rgba(0,224,154,0.25);}
+.p-warn{background:rgba(255,107,53,0.12);color:var(--accent2);border:1px solid rgba(255,107,53,0.25);}
+.p-blue{background:rgba(0,180,255,0.1);color:var(--accent);border:1px solid rgba(0,180,255,0.25);}
+.p-muted{background:rgba(74,122,147,0.15);color:var(--muted);border:1px solid rgba(74,122,147,0.2);}
 
-        .result-header {
-            margin-bottom: 1rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            flex-wrap: wrap;
-            border-bottom: 1px solid #e9f0f4;
-            padding-bottom: 0.6rem;
-        }
+/* RISK BAR */
+.rbar{display:flex;align-items:center;gap:8px;min-width:100px;}
+.rbar-bg{flex:1;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+.rbar-fill{height:100%;border-radius:3px;}
+.rbar-txt{font-size:0.65rem;font-weight:700;min-width:34px;text-align:right;}
 
-        .result-title {
-            font-weight: 600;
-            font-size: 1.1rem;
-        }
+/* LOADER */
+.loader{display:flex;align-items:center;justify-content:center;padding:40px;gap:12px;color:var(--muted);font-size:0.75rem;}
+.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-        .result-sub {
-            font-size: 0.7rem;
-            color: #6a8b9a;
-        }
+/* ERROR STATE */
+.err-box{padding:20px 24px;background:rgba(255,59,59,0.07);border:1px solid rgba(255,59,59,0.2);border-radius:10px;color:var(--danger);font-size:0.75rem;margin:12px 0;}
 
-        /* table — clean, minimal */
-        .table-scroll {
-            overflow-x: auto;
-        }
+/* EMPTY STATE */
+.empty{text-align:center;padding:48px 20px;color:var(--muted);font-size:0.75rem;}
+.empty-icon{font-size:2.5rem;margin-bottom:12px;}
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.75rem;
-        }
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--surface2);border-radius:4px;}
+::-webkit-scrollbar-thumb:hover{background:var(--muted);}
 
-        th {
-            text-align: left;
-            padding: 0.6rem 0.5rem;
-            font-weight: 600;
-            color: #1e5768;
-            border-bottom: 1px solid #e2ecf2;
-        }
+/* FOOTER */
+footer{text-align:center;font-size:0.65rem;color:var(--muted);margin-top:40px;padding-top:20px;border-top:1px solid var(--border);}
+footer a{color:var(--accent);text-decoration:none;}
 
-        td {
-            padding: 0.5rem;
-            border-bottom: 1px solid #f0f5f9;
-            color: #1e3a44;
-        }
-
-        .empty-message {
-            text-align: center;
-            padding: 3rem 1rem;
-            color: #7f9fad;
-            font-size: 0.85rem;
-        }
-
-        .footer-mini {
-            text-align: center;
-            font-size: 0.7rem;
-            color: #8eaebb;
-            margin-top: 2rem;
-            padding-top: 1rem;
-            border-top: 1px solid #e2ebf0;
-        }
-
-        @media (max-width: 700px) {
-            body { padding: 1rem; }
-            .query-pill { font-size: 0.7rem; padding: 0.4rem 0.8rem; }
-            td, th { font-size: 0.7rem; padding: 0.4rem; }
-        }
-    </style>
+@media(max-width:680px){
+  header{padding:20px;}
+  .tab-content{padding:16px;}
+  .stats-row{gap:10px;}
+}
+</style>
 </head>
 <body>
-<div class="container">
-    <div class="top">
-        <h1><i class="fas fa-globe-asia"></i> NEO · planetary defense</h1>
-        <p>Risk analytics · orbital anomalies · ML predictions · threat prioritization</p>
-    </div>
+<div class="shell">
 
-    <!-- minimalist pill row — all 15 queries -->
-    <div class="query-strip" id="queryStrip">
-        <!-- each short label, original queries preserved but ultra compact -->
-        <div class="query-pill" data-q="q1"><i class="fas fa-bullseye"></i> PHA threat</div>
-        <div class="query-pill" data-q="q2"><i class="fas fa-chart-pie"></i> NEO classes</div>
-        <div class="query-pill" data-q="q3"><i class="fas fa-chart-bar"></i> class avg</div>
-        <div class="query-pill" data-q="q4"><i class="fas fa-star"></i> largest NEOs</div>
-        <div class="query-pill" data-q="q5"><i class="fas fa-city"></i> city-killers</div>
-        <div class="query-pill" data-q="q6"><i class="fas fa-brain"></i> ML mismatch</div>
-        <div class="query-pill" data-q="q7"><i class="fas fa-skull"></i> high-risk PHA</div>
-        <div class="query-pill" data-q="q8"><i class="fas fa-tachometer-alt"></i> summary dash</div>
-        <div class="query-pill" data-q="q9"><i class="fas fa-microchip"></i> gold orbits</div>
-        <div class="query-pill" data-q="q10"><i class="fas fa-sun"></i> perihelion</div>
-        <div class="query-pill" data-q="q11"><i class="fas fa-layer-group"></i> class stats</div>
-        <div class="query-pill" data-q="q12"><i class="fas fa-chart-line"></i> eccentricity</div>
-        <div class="query-pill" data-q="q13"><i class="fas fa-fire"></i> high-ecc</div>
-        <div class="query-pill" data-q="q14"><i class="fas fa-globe"></i> sun-grazing</div>
-        <div class="query-pill" data-q="q15"><i class="fas fa-draw-polygon"></i> ellipse</div>
+<!-- HEADER -->
+<header>
+  <div class="header-left">
+    <h1>☄️ NEO Sentry</h1>
+    <p>Planetary Defense Intelligence Interface · Near-Earth Object hazard assessment, orbital dynamics, ML risk predictions, and anomaly detection across 16 analytical queries.</p>
+    <div class="badge-row">
+      <span class="badge badge-red">⚠ PHA Monitor</span>
+      <span class="badge badge-blue">🛰 Orbital Dynamics</span>
+      <span class="badge badge-orange">🤖 ML Risk Engine</span>
+      <span class="badge badge-green">✓ MOID · Cond_code · Anomaly</span>
     </div>
+  </div>
+  <div class="live-clock">
+    <div style="font-size:0.65rem;color:var(--safe);letter-spacing:1px;">● SYSTEM LIVE</div>
+    <div class="clock-time" id="clock">—</div>
+    <div style="margin-top:8px;font-size:0.65rem;color:var(--muted);">Cond Code: 0=best · 9=worst<br>MOID in AU · LD = Lunar Dist.</div>
+  </div>
+</header>
 
-    <!-- minimal results panel -->
-    <div class="result-card">
-        <div class="result-header">
-            <div>
-                <span class="result-title" id="resultTitle">⟡ NEO intelligence</span>
-                <div class="result-sub" id="resultDesc">select any query — real-time asteroid risk data</div>
-            </div>
-            <i class="fas fa-chart-line" style="color:#ce6f2e; opacity:0.7;"></i>
-        </div>
-        <div id="resultTableArea">
-            <div class="empty-message">
-                <i class="fas fa-meteor" style="opacity:0.4; font-size:1.8rem;"></i>
-                <p style="margin-top: 8px;">click a pill → curated orbital / ML risk data</p>
-            </div>
-        </div>
-    </div>
-    <div class="footer-mini">
-        <i class="fas fa-database"></i> NEO dynamical simulator · risk-informed
-    </div>
+<!-- STATS -->
+<div class="stats-row">
+  <div class="stat-card stat-blue"><div class="sv" id="s-total">—</div><div class="sl">Total NEOs</div></div>
+  <div class="stat-card stat-red"><div class="sv" id="s-pha">—</div><div class="sl">Confirmed PHAs</div></div>
+  <div class="stat-card stat-orange"><div class="sv" id="s-mlpha">—</div><div class="sl">ML-Predicted PHAs</div></div>
+  <div class="stat-card stat-green"><div class="sv" id="s-anom">—</div><div class="sl">Anomaly Flags</div></div>
+  <div class="stat-card stat-blue"><div class="sv" id="s-risk">—</div><div class="sl">Avg ML Risk %</div></div>
 </div>
+
+<!-- TABS -->
+<div class="tabs-wrapper">
+  <nav class="tabs-nav">
+    <button class="tab-btn active" data-tab="search">🔍 Search &amp; Lookup</button>
+    <button class="tab-btn" data-tab="threat">🎯 Threat Priority</button>
+    <button class="tab-btn" data-tab="size">💥 Size &amp; Impact</button>
+    <button class="tab-btn" data-tab="ml">🤖 ML Predictions</button>
+    <button class="tab-btn" data-tab="orbital">🪐 Orbital Dynamics</button>
+    <button class="tab-btn" data-tab="anomaly">⚡ Anomaly Detection</button>
+    <button class="tab-btn" data-tab="obs">🔭 Observation Quality</button>
+  </nav>
+
+  <!-- ══ SEARCH TAB ══ -->
+  <div class="tab-content active" id="tab-search">
+    <div class="section-title">🔍 Global Asteroid Search &amp; Multi-Parameter Filter</div>
+    <div class="search-bar-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="globalSearch" placeholder="Search by name, designation, or SPKID … e.g. 99942 Apophis · 2021 AF5">
+    </div>
+    <div class="filters-grid">
+      <div class="filter-group">
+        <label>Orbital Class</label>
+        <select id="f-class">
+          <option value="">All Classes</option>
+          <option value="Apollo">Apollo — Earth-crossing (a&gt;1, q&lt;1.017)</option>
+          <option value="Aten">Aten — Earth-crossing (a&lt;1, Q&gt;0.983)</option>
+          <option value="Amor">Amor — Earth-approaching (1.017&lt;q&lt;1.3)</option>
+          <option value="Atira">Atira — Inside Earth orbit (Q&lt;0.983)</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>PHA Status (Official)</label>
+        <select id="f-pha">
+          <option value="">All</option>
+          <option value="Y">✓ Confirmed PHA</option>
+          <option value="N">✗ Non-PHA</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>ML Prediction</label>
+        <select id="f-pred">
+          <option value="">All</option>
+          <option value="Y">Model → PHA</option>
+          <option value="N">Model → Safe</option>
+          <option value="disc">Discrepancy only</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Max Condition Code</label>
+        <div class="range-row">
+          <input type="range" id="f-cond" min="0" max="9" value="9" step="1">
+          <span class="range-val" id="f-cond-val">≤ 9</span>
+        </div>
+      </div>
+      <div class="filter-group">
+        <label>Max MOID (AU)</label>
+        <div class="range-row">
+          <input type="range" id="f-moid" min="0" max="0.3" value="0.3" step="0.005">
+          <span class="range-val" id="f-moid-val">≤ 0.300 AU</span>
+        </div>
+      </div>
+      <div class="filter-group">
+        <label>Min Diameter (km)</label>
+        <div class="range-row">
+          <input type="range" id="f-diam" min="0" max="50" value="0" step="0.5">
+          <span class="range-val" id="f-diam-val">≥ 0.0 km</span>
+        </div>
+      </div>
+      <div class="filter-group">
+        <label>Min ML Risk %</label>
+        <div class="range-row">
+          <input type="range" id="f-risk" min="0" max="100" value="0" step="1">
+          <span class="range-val" id="f-risk-val">≥ 0%</span>
+        </div>
+      </div>
+      <div class="filter-group">
+        <label>Anomaly Flag</label>
+        <select id="f-anomaly">
+          <option value="">All</option>
+          <option value="Y">⚡ Flagged anomaly</option>
+          <option value="N">Normal</option>
+        </select>
+      </div>
+    </div>
+    <div class="filter-actions">
+      <button class="btn btn-primary" onclick="applyFilters()">Apply Filters</button>
+      <button class="btn btn-ghost" onclick="resetFilters()">Reset All</button>
+      <button class="btn btn-danger" onclick="setQuickFilter('pha')">⚠ PHAs Only</button>
+      <button class="btn btn-ghost" onclick="setQuickFilter('citykiller')">🏙 City-Killers</button>
+      <button class="btn btn-ghost" onclick="setQuickFilter('goldstandard')">⭐ Cond=0</button>
+    </div>
+    <div class="topn-bar">
+      <label>Results:</label>
+      <div class="chips" id="search-chips">
+        <button class="chip" onclick="chipSelect(this,'search-chips');applyFilters()">50</button>
+        <button class="chip active" onclick="chipSelect(this,'search-chips');applyFilters()">100</button>
+        <button class="chip" onclick="chipSelect(this,'search-chips');applyFilters()">250</button>
+        <button class="chip" onclick="chipSelect(this,'search-chips');applyFilters()">500</button>
+      </div>
+      <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="exportCSV('search')">⬇ Export CSV</button>
+    </div>
+    <div class="results-box">
+      <div class="results-header">
+        <div class="results-title" id="search-title">All NEOs · Showing top 100</div>
+        <div class="results-meta">
+          <span>Rows: <b id="row-count">—</b></span>
+        </div>
+      </div>
+      <div id="search-result"></div>
+    </div>
+  </div>
+
+  <!-- ══ THREAT TAB ══ -->
+  <div class="tab-content" id="tab-threat">
+    <div class="section-title">🎯 Threat Prioritization Queries</div>
+    <div class="qgrid">
+      <div class="qcard active-q" onclick="selectQ(this,'threat');loadQ('q1',document.querySelector('#tab-threat .topn-bar .chip.active').textContent,'threat-result','threat-title')">
+        <div class="qcard-icon qi-r">🎯</div>
+        <div><div class="qcard-title">Q1 · PHA Threat Priority — Reliable Orbits</div><div class="qcard-desc">Confirmed PHAs filtered to cond_code ≤ 2 (reliable orbits only), sorted by MOID ascending. Filters out false alarms from poorly-determined orbits.</div></div>
+      </div>
+      <div class="qcard" onclick="selectQ(this,'threat');loadQ('q5',document.querySelector('#tab-threat .topn-bar .chip.active').textContent,'threat-result','threat-title')">
+        <div class="qcard-icon qi-o">🏙</div>
+        <div><div class="qcard-title">Q5 · City-Killers (&gt;140m, MOID&lt;0.05 AU)</div><div class="qcard-desc">Chelyabinsk was 20m and injured 1,500 people. A 140m impact devastates a metropolitan area. DART-class deflection mission candidates.</div></div>
+      </div>
+      <div class="qcard" onclick="selectQ(this,'threat');loadQ('q7',document.querySelector('#tab-threat .topn-bar .chip.active').textContent,'threat-result','threat-title')">
+        <div class="qcard-icon qi-o">🔑</div>
+        <div><div class="qcard-title">Q7 · Keyhole PHAs (ML&gt;50%, PHAs only)</div><div class="qcard-desc">High ML risk among confirmed PHAs — may indicate gravitational keyholes or Yarkovsky drift. Requires precise radio-radar ranging.</div></div>
+      </div>
+    </div>
+    <div class="topn-bar">
+      <label>Top N:</label>
+      <div class="chips" id="threat-chips">
+        <button class="chip" onclick="chipSelect(this,'threat-chips');reloadActiveQ('threat')">10</button>
+        <button class="chip active" onclick="chipSelect(this,'threat-chips');reloadActiveQ('threat')">25</button>
+        <button class="chip" onclick="chipSelect(this,'threat-chips');reloadActiveQ('threat')">50</button>
+        <button class="chip" onclick="chipSelect(this,'threat-chips');reloadActiveQ('threat')">100</button>
+        <button class="chip" onclick="chipSelect(this,'threat-chips');reloadActiveQ('threat')">250</button>
+      </div>
+      <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="exportCSV(tabActiveQ.threat)">⬇ Export CSV</button>
+    </div>
+    <div class="results-box">
+      <div class="results-header">
+        <div class="results-title" id="threat-title">Q1 · PHA Threat Prioritization</div>
+        <div class="results-meta"><span id="threat-meta"></span></div>
+      </div>
+      <div id="threat-result"><div class="loader"><div class="spinner"></div> Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- ══ SIZE TAB ══ -->
+  <div class="tab-content" id="tab-size">
+    <div class="section-title">💥 Size &amp; Impact Classification</div>
+    <div class="qgrid">
+      <div class="qcard active-q" onclick="selectQ(this,'size');loadQ('q4',document.querySelector('#tab-size .topn-bar .chip.active').textContent,'size-result','size-title')">
+        <div class="qcard-icon qi-r">🌍</div>
+        <div><div class="qcard-title">Q4 · Planet-Killers (Largest NEOs)</div><div class="qcard-desc">Lowest absolute magnitude H = largest objects. ≥1km capable of global catastrophe. Tracked regardless of current MOID; orbital perturbations can redirect them.</div></div>
+      </div>
+      <div class="qcard" onclick="selectQ(this,'size');loadQ('q5',document.querySelector('#tab-size .topn-bar .chip.active').textContent,'size-result','size-title')">
+        <div class="qcard-icon qi-o">🏙</div>
+        <div><div class="qcard-title">Q5 · City-Killers (&gt;140m &amp; MOID&lt;0.05)</div><div class="qcard-desc">Diameter exceeding 140m AND close approach orbit. Immediate follow-up and deflection planning required for any object meeting both criteria.</div></div>
+      </div>
+      <div class="qcard" onclick="selectQ(this,'size');loadQ('q3',document.querySelector('#tab-size .topn-bar .chip.active').textContent,'size-result','size-title')">
+        <div class="qcard-icon qi-b">📊</div>
+        <div><div class="qcard-title">Q3 · Avg Properties by Orbital Class</div><div class="qcard-desc">Baseline statistics per class: avg diameter, eccentricity, inclination, MOID. Enables outlier detection — objects deviating from class norms.</div></div>
+      </div>
+    </div>
+    <div class="topn-bar">
+      <label>Top N:</label>
+      <div class="chips" id="size-chips">
+        <button class="chip" onclick="chipSelect(this,'size-chips');reloadActiveQ('size')">10</button>
+        <button class="chip active" onclick="chipSelect(this,'size-chips');reloadActiveQ('size')">25</button>
+        <button class="chip" onclick="chipSelect(this,'size-chips');reloadActiveQ('size')">50</button>
+        <button class="chip" onclick="chipSelect(this,'size-chips');reloadActiveQ('size')">100</button>
+      </div>
+    </div>
+    <div class="results-box">
+      <div class="results-header">
+        <div class="results-title" id="size-title">Q4 · Planet-Killers</div>
+        <div class="results-meta"><span id="size-meta"></span></div>
+      </div>
+      <div id="size-result"><div class="loader"><div class="spinner"></div> Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- ══ ML TAB ══ -->
+  <div class="tab-content" id="tab-ml">
+    <div class="section-title">🤖 Machine Learning Predictions &amp; Model Discrepancies</div>
+    <div class="qgrid">
+      <div class="qcard active-q" onclick="selectQ(this,'ml');loadQ('q6',document.querySelector('#tab-ml .topn-bar .chip.active').textContent,'ml-result','ml-title')">
+        <div class="qcard-icon qi-r">❌</div>
+        <div><div class="qcard-title">Q6 · False Positives / False Negatives</div><div class="qcard-desc">Red-team analysis. Missed PHAs (FN) are catastrophic; false alarms (FP) waste telescope time. Reveals classifier confusion regions for retraining.</div></div>
+      </div>
+      <div class="qcard" onclick="selectQ(this,'ml');loadQ('q2',document.querySelector('#tab-ml .topn-bar .chip.active').textContent,'ml-result','ml-title')">
+        <div class="qcard-icon qi-b">📈</div>
+        <div><div class="qcard-title">Q2 · PHA% vs ML% per Class</div><div class="qcard-desc">Official PHA fraction vs ML-predicted fraction per orbital class. If ML over-predicts Atens, model may need class-specific recalibration.</div></div>
+      </div>
+      <div class="qcard" onclick="selectQ(this,'ml');loadQ('q8',document.querySelector('#tab-ml .topn-bar .chip.active').textContent,'ml-result','ml-title')">
+        <div class="qcard-icon qi-g">📋</div>
+        <div><div class="qcard-title">Q8 · Summary Dashboard</div><div class="qcard-desc">High-level alignment between official classification and Random Forest predictions. Agreement rate, confusion matrix totals per class.</div></div>
+      </div>
+    </div>
+    <div class="topn-bar">
+      <label>Top N:</label>
+      <div class="chips" id="ml-chips">
+        <button class="chip" onclick="chipSelect(this,'ml-chips');reloadActiveQ('ml')">10</button>
+        <button class="chip active" onclick="chipSelect(this,'ml-chips');reloadActiveQ('ml')">30</button>
+        <button class="chip" onclick="chipSelect(this,'ml-chips');reloadActiveQ('ml')">50</button>
+        <button class="chip" onclick="chipSelect(this,'ml-chips');reloadActiveQ('ml')">100</button>
+      </div>
+      <label style="margin-left:16px;">Show:</label>
+      <div class="chips" id="ml-filter-chips">
+        <button class="chip active" onclick="chipSelect(this,'ml-filter-chips');reloadActiveQ('ml')">All</button>
+        <button class="chip" onclick="chipSelect(this,'ml-filter-chips');reloadActiveQ('ml')">False Neg</button>
+        <button class="chip" onclick="chipSelect(this,'ml-filter-chips');reloadActiveQ('ml')">False Pos</button>
+      </div>
+    </div>
+    <div class="results-box">
+      <div class="results-header">
+        <div class="results-title" id="ml-title">Q6 · ML Discrepancies</div>
+        <div class="results-meta"><span id="ml-meta"></span></div>
+      </div>
+      <div id="ml-result"><div class="loader"><div class="spinner"></div> Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- ══ ORBITAL TAB ══ -->
+  <div class="tab-content" id="tab-orbital">
+    <div class="section-title">🪐 Orbital Dynamics &amp; Distribution</div>
+    <div class="qgrid">
+      <div class="qcard active-q" onclick="selectQ(this,'orbital');loadQ('q10',document.querySelector('#tab-orbital .topn-bar .chip.active').textContent,'orbital-result','orbital-title')">
+        <div class="qcard-icon qi-b">☀</div>
+        <div><div class="qcard-title">Q10 · Perihelion Distribution by Class</div><div class="qcard-desc">How close each class gets to the Sun. Reveals thermal environment and detection difficulty from ground surveys.</div></div>
+      </div>
+      <div class="qcard" onclick="selectQ(this,'orbital');loadQ('q12',document.querySelector('#tab-orbital .topn-bar .chip.active').textContent,'orbital-result','orbital-title')">
+        <div class="qcard-icon qi-o">📉</div>
+        <div><div class="qcard-title">Q12 · Eccentricity Distribution</div><div class="qcard-desc">Min/max/mean/stddev eccentricity per class. e→1 = comet-like; e&gt;1 = hyperbolic (interstellar visitor). Outliers flagged per class.</div></div>
+      </div>
+      <div class="qcard" onclick="selectQ(this,'orbital');loadQ('q13',document.querySelector('#tab-orbital .topn-bar .chip.active').textContent,'orbital-result','orbital-title')">
+        <div class="qcard-icon qi-r">🌪</div>
+        <div><div class="qcard-title">Q13 · High-Eccentricity Wildcards (e&gt;0.9)</div><div class="qcard-desc">Exotic objects: dormant comets, giant-impact fragments, possible interstellar captures. Chaotic trajectories unpredictable decades ahead.</div></div>
+      </div>
+      <div class="qcard" onclick="selectQ(this,'orbital');loadQ('q14',document.querySelector('#tab-orbital .topn-bar .chip.active').textContent,'orbital-result','orbital-title')">
+        <div class="qcard-icon qi-o">🌞</div>
+        <div><div class="qcard-title">Q14 · Sun-Grazers &amp; High-Inclination (q&lt;0.5, i&gt;45°)</div><div class="qcard-desc">Polar/retrograde orbits from Oort cloud. Approach from outside typical survey coverage — hardest to detect.</div></div>
+      </div>
+      <div class="qcard" onclick="selectQ(this,'orbital');loadQ('q15',document.querySelector('#tab-orbital .topn-bar .chip.active').textContent,'orbital-result','orbital-title')">
+        <div class="qcard-icon qi-b">🔮</div>
+        <div><div class="qcard-title">Q15 · Orbital Ellipse Reconstruction</div><div class="qcard-desc">Computes semi-major axis, aphelion, Earth-crossing type. Powers 3D orbit visualization and intercept trajectory planning.</div></div>
+      </div>
+    </div>
+    <div class="topn-bar">
+      <label>Top N:</label>
+      <div class="chips" id="orbital-chips">
+        <button class="chip" onclick="chipSelect(this,'orbital-chips');reloadActiveQ('orbital')">10</button>
+        <button class="chip active" onclick="chipSelect(this,'orbital-chips');reloadActiveQ('orbital')">50</button>
+        <button class="chip" onclick="chipSelect(this,'orbital-chips');reloadActiveQ('orbital')">100</button>
+        <button class="chip" onclick="chipSelect(this,'orbital-chips');reloadActiveQ('orbital')">250</button>
+      </div>
+    </div>
+    <div class="results-box">
+      <div class="results-header">
+        <div class="results-title" id="orbital-title">Q10 · Perihelion Distribution by Orbital Class</div>
+        <div class="results-meta"><span id="orbital-meta"></span></div>
+      </div>
+      <div id="orbital-result"><div class="loader"><div class="spinner"></div> Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- ══ ANOMALY TAB ══ -->
+  <div class="tab-content" id="tab-anomaly">
+    <div class="section-title">⚡ Orbital Anomaly Detection</div>
+    <div class="qgrid">
+      <div class="qcard active-q" onclick="selectQ(this,'anomaly');loadQ('q11',document.querySelector('#tab-anomaly .topn-bar .chip.active').textContent,'anomaly-result','anomaly-title')">
+        <div class="qcard-icon qi-o">📦</div>
+        <div><div class="qcard-title">Q11 · Classes &gt;10 Members + Anomaly Stats</div><div class="qcard-desc">Per-class anomaly rate breakdown across three axes: MOID anomaly, eccentricity anomaly, inclination anomaly. Identifies classes with unusual orbital behavior.</div></div>
+      </div>
+      <div class="qcard" onclick="selectQ(this,'anomaly');loadQ('q13',document.querySelector('#tab-anomaly .topn-bar .chip.active').textContent,'anomaly-result','anomaly-title')">
+        <div class="qcard-icon qi-r">🌪</div>
+        <div><div class="qcard-title">Q13 · High-e Anomalies (e&gt;0.9)</div><div class="qcard-desc">Cross-reference extreme eccentricity with anomaly flags. Spectroscopic targets for composition analysis — rocky vs icy interior.</div></div>
+      </div>
+      <div class="qcard" onclick="selectQ(this,'anomaly');loadQ('q14',document.querySelector('#tab-anomaly .topn-bar .chip.active').textContent,'anomaly-result','anomaly-title')">
+        <div class="qcard-icon qi-b">🧭</div>
+        <div><div class="qcard-title">Q14 · Multi-Anomaly (MOID+e+i combined)</div><div class="qcard-desc">Sun-grazers with high inclination AND multiple anomaly axes flagged. The most dynamically unusual objects in the catalog.</div></div>
+      </div>
+    </div>
+    <div class="topn-bar">
+      <label>Top N:</label>
+      <div class="chips" id="anomaly-chips">
+        <button class="chip" onclick="chipSelect(this,'anomaly-chips');reloadActiveQ('anomaly')">10</button>
+        <button class="chip active" onclick="chipSelect(this,'anomaly-chips');reloadActiveQ('anomaly')">25</button>
+        <button class="chip" onclick="chipSelect(this,'anomaly-chips');reloadActiveQ('anomaly')">50</button>
+        <button class="chip" onclick="chipSelect(this,'anomaly-chips');reloadActiveQ('anomaly')">100</button>
+      </div>
+    </div>
+    <div class="results-box">
+      <div class="results-header">
+        <div class="results-title" id="anomaly-title">Q11 · Orbital Anomaly Summary by Class</div>
+        <div class="results-meta"><span id="anomaly-meta"></span></div>
+      </div>
+      <div id="anomaly-result"><div class="loader"><div class="spinner"></div> Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- ══ OBS TAB ══ -->
+  <div class="tab-content" id="tab-obs">
+    <div class="section-title">🔭 Observation Quality &amp; Data Reliability</div>
+    <div class="qgrid">
+      <div class="qcard active-q" onclick="selectQ(this,'obs');loadQ('q9',document.querySelector('#tab-obs .topn-bar .chip.active').textContent,'obs-result','obs-title')">
+        <div class="qcard-icon qi-g">⭐</div>
+        <div><div class="qcard-title">Q9 · Gold-Standard Orbits (cond_code=0)</div><div class="qcard-desc">Best-determined orbits in the catalog. Anchors for calibrating dynamical models and non-gravitational force detection.</div></div>
+      </div>
+      <div class="qcard" onclick="selectQ(this,'obs');loadQ('q16',document.querySelector('#tab-obs .topn-bar .chip.active').textContent,'obs-result','obs-title')">
+        <div class="qcard-icon qi-b">📅</div>
+        <div><div class="qcard-title">Q16 · Longest Observational Arcs (&gt;27 yr)</div><div class="qcard-desc">data_arc &gt;10,000 days. Multi-decade tracking reveals Yarkovsky drift and gravitational perturbations. Anomaly flags here are intrinsic, not measurement error.</div></div>
+      </div>
+    </div>
+    <div class="topn-bar">
+      <label>Top N:</label>
+      <div class="chips" id="obs-chips">
+        <button class="chip" onclick="chipSelect(this,'obs-chips');reloadActiveQ('obs')">10</button>
+        <button class="chip active" onclick="chipSelect(this,'obs-chips');reloadActiveQ('obs')">25</button>
+        <button class="chip" onclick="chipSelect(this,'obs-chips');reloadActiveQ('obs')">50</button>
+        <button class="chip" onclick="chipSelect(this,'obs-chips');reloadActiveQ('obs')">100</button>
+      </div>
+    </div>
+    <div class="results-box">
+      <div class="results-header">
+        <div class="results-title" id="obs-title">Q9 · Gold-Standard Orbits — Condition Code = 0</div>
+        <div class="results-meta"><span id="obs-meta"></span></div>
+      </div>
+      <div id="obs-result"><div class="loader"><div class="spinner"></div> Loading…</div></div>
+    </div>
+  </div>
+
+</div><!-- /tabs-wrapper -->
+
+<footer>
+  <p>☄️ NEO Sentry · Planetary Defense Intelligence Interface · Live database via <code>api.php</code></p>
+  <p style="margin-top:6px;">16 analytical queries across NEO, PhysicalProperties, OrbitalElements, ObservationRecord, PredictedPHAs, OrbitalAnomalies</p>
+</footer>
+</div><!-- /shell -->
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   CONFIG
+══════════════════════════════════════════════════════════ */
+const API = 'api.php'; // adjust if hosted elsewhere
+
+/* ══════════════════════════════════════════════════════════
+   CLOCK
+══════════════════════════════════════════════════════════ */
+function tick(){const d=new Date();document.getElementById('clock').textContent=d.toUTCString().replace(/\s*GMT\s*/,'').replace(/^\w+,\s*/,'');}
+tick();setInterval(tick,1000);
+
+/* ══════════════════════════════════════════════════════════
+   HELPERS
+══════════════════════════════════════════════════════════ */
+const pill = (t, c) => `<span class="pill p-${c}">${t ?? '—'}</span>`;
+const pha  = v => v === 'Y' ? pill('PHA','danger') : pill('Safe','safe');
+const pred = v => v === null ? pill('N/A','muted') : v === 'Y' ? pill('Y','warn') : pill('N','muted');
+const anom = v => v === 'Y' ? pill('⚡ YES','warn') : pill('—','muted');
+const cls  = v => pill(v ?? '?','blue');
+const moidColor = v => {
+  if (v === null) return '—';
+  const n = parseFloat(v);
+  const col = n < 0.02 ? 'var(--danger)' : n < 0.05 ? 'var(--accent2)' : 'var(--text)';
+  return `<span style="color:${col};font-weight:${n<0.05?700:400}">${v}</span>`;
+};
+const condColor = v => {
+  if (v === null) return '—';
+  const col = v === 0 ? 'var(--safe)' : v <= 2 ? 'var(--text)' : 'var(--accent2)';
+  return `<span style="color:${col}">${v}</span>`;
+};
+function riskBar(pct){
+  if (pct === null || pct === undefined) return '<span style="color:var(--muted)">N/A</span>';
+  const n = parseFloat(pct);
+  const col = n > 70 ? 'var(--danger)' : n > 35 ? 'var(--accent2)' : 'var(--safe)';
+  return `<div class="rbar"><div class="rbar-bg"><div class="rbar-fill" style="width:${Math.min(n,100)}%;background:${col}"></div></div><span class="rbar-txt" style="color:${col}">${n.toFixed(1)}%</span></div>`;
+}
+function intersectionPill(type){
+  const map = {'Earth-Crossing':'danger','Earth-Approaching (Inside)':'warn','Earth-Approaching (Outside)':'blue','Safe':'safe'};
+  return pill(type ?? '—', map[type] ?? 'muted');
+}
+const n = v => (v === null || v === undefined) ? '—' : v;
+const loader = () => '<div class="loader"><div class="spinner"></div> Querying database…</div>';
+const empty  = () => '<div class="empty"><div class="empty-icon">🔭</div><div>No results found for this filter combination.</div></div>';
+function errBox(msg){ return `<div class="err-box">⚠ ${msg}</div>`; }
+
+/* ══════════════════════════════════════════════════════════
+   FETCH WRAPPER
+══════════════════════════════════════════════════════════ */
+async function apiFetch(params){
+  const url = API + '?' + new URLSearchParams(params).toString();
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const json = await res.json();
+  if (json.error) throw new Error(json.error);
+  return json;
+}
+
+/* ══════════════════════════════════════════════════════════
+   TABLE BUILDERS — each query has its own column spec
+══════════════════════════════════════════════════════════ */
+
+const TABLE_BUILDERS = {
+  // ── Search ───────────────────────────────────────────
+  search(rows){
+    const head = `<tr><th>SPKID</th><th>Name</th><th>Class</th><th>PHA</th><th>Diam (km)</th><th>MOID (AU)</th><th>MOID (LD)</th><th>ML Risk %</th><th>Pred PHA</th><th>Cond</th><th>Anomaly</th></tr>`;
+    const body = rows.map(r => `<tr>
+      <td style="color:var(--muted);font-size:0.68rem">${n(r.spkid)}</td>
+      <td style="color:var(--heading);font-weight:700">${n(r.full_name)}</td>
+      <td>${cls(r.class)}</td>
+      <td>${pha(r.pha)}</td>
+      <td style="color:${r.diameter_km>1?'var(--accent2)':'var(--text)'}">${n(r.diameter_km)}</td>
+      <td>${moidColor(r.moid_au)}</td>
+      <td style="color:var(--muted)">${n(r.moid_ld)}</td>
+      <td>${riskBar(r.ml_risk_pct)}</td>
+      <td>${pred(r.pred_pha)}</td>
+      <td>${condColor(r.condition_code)}</td>
+      <td>${anom(r.anomaly_flag)}</td>
+    </tr>`).join('');
+    return mkTable(head, body);
+  },
+  // ── Q1 ───────────────────────────────────────────────
+  q1(rows){
+    const head = `<tr><th>SPKID</th><th>Name</th><th>Class</th><th>Diam (km)</th><th>MOID (AU)</th><th>MOID (LD)</th><th>Cond Code</th><th>Obs Days</th></tr>`;
+    const body = rows.map(r => `<tr>
+      <td style="color:var(--muted)">${n(r.spkid)}</td>
+      <td style="color:var(--heading);font-weight:700">${n(r.full_name)}</td>
+      <td>${cls(r.class)}</td>
+      <td style="color:var(--accent2)">${n(r.diameter_km)}</td>
+      <td>${moidColor(r.moid_au)}</td>
+      <td style="color:var(--muted)">${n(r.moid_ld)}</td>
+      <td>${condColor(r.condition_code)}</td>
+      <td style="color:var(--muted)">${n(r.observation_days) !== '—' ? (+r.observation_days).toLocaleString() : '—'}</td>
+    </tr>`).join('');
+    return mkTable(head, body);
+  },
+  // ── Q2 ───────────────────────────────────────────────
+  q2(rows){
+    const head = `<tr><th>Class</th><th>Total NEOs</th><th>Official PHA #</th><th>Official PHA %</th><th>ML-Pred PHA #</th><th>ML-Pred PHA %</th></tr>`;
+    const body = rows.map(r => {
+      const diff = (parseFloat(r.pred_pha_pct) - parseFloat(r.pha_flag_pct)).toFixed(2);
+      const diffCol = diff > 0 ? 'var(--accent2)' : 'var(--safe)';
+      return `<tr>
+        <td>${cls(r.class)}</td>
+        <td style="color:var(--accent)">${n(r.total_count)}</td>
+        <td>${n(r.pha_flag_count)}</td>
+        <td style="color:var(--danger)">${n(r.pha_flag_pct)}%</td>
+        <td>${n(r.pred_pha_count)}</td>
+        <td style="color:${diffCol}">${n(r.pred_pha_pct)}% <span style="font-size:0.6rem;color:${diffCol}">(Δ ${diff > 0 ? '+' : ''}${diff})</span></td>
+      </tr>`;
+    }).join('');
+    return mkTable(head, body);
+  },
+  // ── Q3 ───────────────────────────────────────────────
+  q3(rows){
+    const head = `<tr><th>Class</th><th>Count</th><th>Avg Diam (km)</th><th>Avg H (mag)</th><th>Avg e</th><th>Avg i (°)</th><th>Avg MOID (AU)</th><th>Avg MOID (LD)</th></tr>`;
+    const body = rows.map(r => `<tr>
+      <td>${cls(r.class)}</td>
+      <td style="color:var(--accent)">${n(r.neo_count)}</td>
+      <td style="color:var(--accent2)">${n(r.avg_diameter_km)}</td>
+      <td>${n(r.avg_magnitude_H)}</td>
+      <td>${n(r.avg_eccentricity)}</td>
+      <td>${n(r.avg_inclination_deg)}°</td>
+      <td>${moidColor(r.avg_moid_au)}</td>
+      <td style="color:var(--muted)">${n(r.avg_moid_ld)}</td>
+    </tr>`).join('');
+    return mkTable(head, body);
+  },
+  // ── Q4 ───────────────────────────────────────────────
+  q4(rows){
+    const head = `<tr><th>SPKID</th><th>Name</th><th>Class</th><th>Official PHA</th><th>H (mag)</th><th>Diam (km)</th><th>MOID (AU)</th><th>MOID (LD)</th><th>ML Risk %</th><th>Pred PHA</th></tr>`;
+    const body = rows.map(r => `<tr>
+      <td style="color:var(--muted)">${n(r.spkid)}</td>
+      <td style="color:var(--heading);font-weight:700">${n(r.full_name)}</td>
+      <td>${cls(r.class)}</td>
+      <td>${pha(r.official_pha)}</td>
+      <td style="color:var(--accent)">${n(r.H)}</td>
+      <td style="color:var(--accent2);font-weight:700">${n(r.diameter_km)}</td>
+      <td>${moidColor(r.moid_au)}</td>
+      <td style="color:var(--muted)">${n(r.moid_ld)}</td>
+      <td>${riskBar(r.risk_percent)}</td>
+      <td>${pred(r.pred_pha)}</td>
+    </tr>`).join('');
+    return mkTable(head, body);
+  },
+  // ── Q5 ───────────────────────────────────────────────
+  q5(rows){
+    const head = `<tr><th>SPKID</th><th>Name</th><th>PHA</th><th>Class</th><th>Diam (km)</th><th>MOID (AU)</th><th>MOID (LD)</th><th>Obs Days</th><th>Cond</th><th>Pred PHA</th><th>ML Risk %</th></tr>`;
+    const body = rows.map(r => `<tr>
+      <td style="color:var(--muted)">${n(r.spkid)}</td>
+      <td style="color:var(--heading);font-weight:700">${n(r.full_name)}</td>
+      <td>${pha(r.official_pha)}</td>
+      <td>${cls(r.class)}</td>
+      <td style="color:var(--accent2);font-weight:700">${n(r.diameter_km)}</td>
+      <td>${moidColor(r.moid_au)}</td>
+      <td style="color:var(--muted)">${n(r.moid_ld)}</td>
+      <td style="color:var(--muted)">${n(r.observation_days) !== '—' ? (+r.observation_days).toLocaleString() : '—'}</td>
+      <td>${condColor(r.condition_code)}</td>
+      <td>${pred(r.pred_pha)}</td>
+      <td>${riskBar(r.risk_pct)}</td>
+    </tr>`).join('');
+    return mkTable(head, body);
+  },
+  // ── Q6 ───────────────────────────────────────────────
+  q6(rows){
+    const head = `<tr><th>SPKID</th><th>Name</th><th>Class</th><th>Official PHA</th><th>Pred PHA</th><th>ML Risk %</th><th>Status</th><th>Anomaly</th><th>Diam (km)</th><th>MOID (AU)</th></tr>`;
+    const body = rows.map(r => {
+      const statusCls = r.prediction_status === 'False Negative' ? 'danger' : 'warn';
+      return `<tr>
+        <td style="color:var(--muted)">${n(r.spkid)}</td>
+        <td style="color:var(--heading);font-weight:700">${n(r.full_name)}</td>
+        <td>${cls(r.class)}</td>
+        <td>${pha(r.official_pha)}</td>
+        <td>${pred(r.pred_pha)}</td>
+        <td>${riskBar(r.risk_probability)}</td>
+        <td>${pill(r.prediction_status, statusCls)}</td>
+        <td>${anom(r.anomaly_flag)}</td>
+        <td>${n(r.diameter_km)}</td>
+        <td>${moidColor(r.moid_au)}</td>
+      </tr>`;
+    }).join('');
+    return mkTable(head, body);
+  },
+  // ── Q7 ───────────────────────────────────────────────
+  q7(rows){
+    const head = `<tr><th>SPKID</th><th>Name</th><th>Class</th><th>MOID (AU)</th><th>MOID (LD)</th><th>Diam (km)</th><th>H (mag)</th><th>ML Risk %</th><th>Obs Days</th><th>Cond</th><th>Anomaly</th></tr>`;
+    const body = rows.map(r => `<tr>
+      <td style="color:var(--muted)">${n(r.spkid)}</td>
+      <td style="color:var(--heading);font-weight:700">${n(r.full_name)}</td>
+      <td>${cls(r.class)}</td>
+      <td>${moidColor(r.moid_au)}</td>
+      <td style="color:var(--muted)">${n(r.moid_ld)}</td>
+      <td style="color:var(--accent2)">${n(r.diameter_km)}</td>
+      <td>${n(r.H)}</td>
+      <td>${riskBar(r.risk_percent)}</td>
+      <td style="color:var(--muted)">${n(r.observation_days) !== '—' ? (+r.observation_days).toLocaleString() : '—'}</td>
+      <td>${condColor(r.condition_code)}</td>
+      <td>${anom(r.anomaly_flag)}</td>
+    </tr>`).join('');
+    return mkTable(head, body);
+  },
+  // ── Q8 — single row summary ───────────────────────────
+  q8(data){
+    // data is a single object, not array
+    const r = Array.isArray(data) ? data[0] : data;
+    return `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px;padding:24px">
+      ${kv('Total Asteroids', (+r.total_asteroids||0).toLocaleString(), 'accent')}
+      ${kv('Official PHAs', (+r.official_pha_count||0).toLocaleString(), 'danger')}
+      ${kv('ML-Predicted PHAs', (+r.ml_pred_pha_count||0).toLocaleString(), 'warn')}
+      ${kv('Anomaly Flags', (+r.anomaly_count||0).toLocaleString(), 'accent2')}
+      ${kv('Avg Diameter (km)', r.avg_diameter_km ?? '—', 'text')}
+      ${kv('Avg MOID (AU)', r.avg_moid_au ?? '—', 'text')}
+      ${kv('Avg ML Risk %', r.avg_ml_risk_pct ? r.avg_ml_risk_pct + '%' : '—', 'accent')}
+    </div>`;
+  },
+  // ── Q9 ───────────────────────────────────────────────
+  q9(rows){
+    const head = `<tr><th>SPKID</th><th>Name</th><th>Class</th><th>PHA</th><th>Obs Days</th><th>Obs Years</th><th>MOID (AU)</th><th>Diam (km)</th><th>Anomaly</th><th>Anomaly Types</th></tr>`;
+    const body = rows.map(r => `<tr>
+      <td style="color:var(--muted)">${n(r.spkid)}</td>
+      <td style="color:var(--heading);font-weight:700">${n(r.full_name)}</td>
+      <td>${cls(r.class)}</td>
+      <td>${pha(r.pha)}</td>
+      <td style="color:var(--accent)">${n(r.observation_days) !== '—' ? (+r.observation_days).toLocaleString() : '—'}</td>
+      <td style="color:var(--safe)">${n(r.observation_years)}</td>
+      <td>${moidColor(r.moid_au)}</td>
+      <td>${n(r.diameter_km)}</td>
+      <td>${anom(r.anomaly_flag)}</td>
+      <td style="color:var(--muted);font-size:0.65rem">${r.anomaly_types || '—'}</td>
+    </tr>`).join('');
+    return mkTable(head, body);
+  },
+  // ── Q10 ──────────────────────────────────────────────
+  q10(rows){
+    const head = `<tr><th>Class</th><th>Count</th><th>Min q (AU)</th><th>Max q (AU)</th><th>Avg q (AU)</th><th>Sun-Approaching</th><th>Earth-Crossers</th><th>% Sun-App</th><th>Anomalies</th></tr>`;
+    const body = rows.map(r => `<tr>
+      <td>${cls(r.class)}</td>
+      <td style="color:var(--accent)">${n(r.neo_count)}</td>
+      <td>${n(r.min_q_au)}</td>
+      <td>${n(r.max_q_au)}</td>
+      <td style="color:var(--accent2)">${n(r.avg_q_au)}</td>
+      <td style="color:var(--danger)">${n(r.sun_approaching_count)}</td>
+      <td style="color:var(--accent2)">${n(r.earth_crosser_count)}</td>
+      <td>${n(r.pct_sun_approaching)}%</td>
+      <td>${n(r.anomaly_count)}</td>
+    </tr>`).join('');
+    return mkTable(head, body);
+  },
+  // ── Q11 ──────────────────────────────────────────────
+  q11(rows){
+    const head = `<tr><th>Class</th><th>Members</th><th>Avg Diam (km)</th><th>σ Diam</th><th>Avg H</th><th>Avg e</th><th>Avg i (°)</th><th>MOID Anom</th><th>e Anom</th><th>i Anom</th><th>Any Anom</th><th>Anom Rate %</th></tr>`;
+    const body = rows.map(r => `<tr>
+      <td>${cls(r.class)}</td>
+      <td style="color:var(--accent)">${n(r.member_count)}</td>
+      <td style="color:var(--accent2)">${n(r.avg_diameter_km)}</td>
+      <td style="color:var(--muted)">${n(r.stddev_diameter_km)}</td>
+      <td>${n(r.avg_magnitude_H)}</td>
+      <td>${n(r.avg_eccentricity)}</td>
+      <td>${n(r.avg_inclination_deg)}°</td>
+      <td style="color:var(--accent2)">${n(r.moid_anomaly_count)}</td>
+      <td>${n(r.e_anomaly_count)}</td>
+      <td>${n(r.i_anomaly_count)}</td>
+      <td style="color:var(--danger);font-weight:700">${n(r.anomaly_count)}</td>
+      <td>${riskBar(r.pct_anomalies)}</td>
+    </tr>`).join('');
+    return mkTable(head, body);
+  },
+  // ── Q12 ──────────────────────────────────────────────
+  q12(rows){
+    const head = `<tr><th>Class</th><th>Count</th><th>Min e</th><th>Max e</th><th>Mean e</th><th>σ e</th><th>Mean i (°)</th><th>σ i</th><th>e Anomalies</th></tr>`;
+    const body = rows.map(r => `<tr>
+      <td>${cls(r.class)}</td>
+      <td style="color:var(--accent)">${n(r.neo_count)}</td>
+      <td>${n(r.min_e)}</td>
+      <td style="color:var(--danger)">${n(r.max_e)}</td>
+      <td style="color:var(--accent2)">${n(r.mean_e)}</td>
+      <td style="color:var(--muted)">${n(r.stddev_e)}</td>
+      <td>${n(r.mean_incl_deg)}°</td>
+      <td style="color:var(--muted)">${n(r.stddev_incl_deg)}</td>
+      <td style="color:var(--accent2)">${n(r.e_anomaly_count)}</td>
+    </tr>`).join('');
+    return mkTable(head, body);
+  },
+  // ── Q13 ──────────────────────────────────────────────
+  q13(rows){
+    const head = `<tr><th>SPKID</th><th>Name</th><th>Class</th><th>PHA</th><th>e</th><th>i (°)</th><th>q (AU)</th><th>MOID (AU)</th><th>Diam (km)</th><th>H</th><th>Pred PHA</th><th>ML Risk %</th><th>Anomaly</th></tr>`;
+    const body = rows.map(r => `<tr>
+      <td style="color:var(--muted)">${n(r.spkid)}</td>
+      <td style="color:var(--heading);font-weight:700">${n(r.full_name)}</td>
+      <td>${cls(r.class)}</td>
+      <td>${pha(r.pha)}</td>
+      <td style="color:var(--danger);font-weight:700">${n(r.eccentricity)}</td>
+      <td>${n(r.inclination_deg)}°</td>
+      <td>${n(r.perihelion_au)}</td>
+      <td>${moidColor(r.moid_au)}</td>
+      <td>${n(r.diameter_km)}</td>
+      <td>${n(r.H)}</td>
+      <td>${pred(r.pred_pha)}</td>
+      <td>${riskBar(r.ml_risk_pct)}</td>
+      <td>${anom(r.anomaly_flag)}</td>
+    </tr>`).join('');
+    return mkTable(head, body);
+  },
+  // ── Q14 ──────────────────────────────────────────────
+  q14(rows){
+    const head = `<tr><th>SPKID</th><th>Name</th><th>Class</th><th>PHA</th><th>q (AU)</th><th>i (°)</th><th>e</th><th>MOID (AU)</th><th>MOID (LD)</th><th>Diam (km)</th><th>Obs Days</th><th>Pred PHA</th><th>ML Risk %</th><th>Anomaly</th><th>Anom Types</th></tr>`;
+    const body = rows.map(r => `<tr>
+      <td style="color:var(--muted)">${n(r.spkid)}</td>
+      <td style="color:var(--heading);font-weight:700">${n(r.full_name)}</td>
+      <td>${cls(r.class)}</td>
+      <td>${pha(r.pha)}</td>
+      <td style="color:var(--accent)">${n(r.perihelion_au)}</td>
+      <td style="color:var(--accent2)">${n(r.inclination_deg)}°</td>
+      <td>${n(r.eccentricity)}</td>
+      <td>${moidColor(r.moid_au)}</td>
+      <td style="color:var(--muted)">${n(r.moid_ld)}</td>
+      <td>${n(r.diameter_km)}</td>
+      <td style="color:var(--muted)">${n(r.observation_days) !== '—' ? (+r.observation_days).toLocaleString() : '—'}</td>
+      <td>${pred(r.pred_pha)}</td>
+      <td>${riskBar(r.ml_risk_pct)}</td>
+      <td>${anom(r.anomaly_flag)}</td>
+      <td style="color:var(--muted);font-size:0.65rem">${r.anomaly_types || '—'}</td>
+    </tr>`).join('');
+    return mkTable(head, body);
+  },
+  // ── Q15 ──────────────────────────────────────────────
+  q15(rows){
+    const head = `<tr><th>SPKID</th><th>Name</th><th>Class</th><th>e</th><th>Semi-Major (AU)</th><th>Perihelion (AU)</th><th>Aphelion (AU)</th><th>Beyond Earth (AU)</th><th>Earth Type</th><th>MOID (AU)</th><th>Pred PHA</th><th>ML Risk %</th></tr>`;
+    const body = rows.map(r => `<tr>
+      <td style="color:var(--muted)">${n(r.spkid)}</td>
+      <td style="color:var(--heading);font-weight:700">${n(r.full_name)}</td>
+      <td>${cls(r.class)}</td>
+      <td>${n(r.eccentricity)}</td>
+      <td style="color:var(--accent)">${n(r.semi_major_axis_au)}</td>
+      <td>${n(r.perihelion_au)}</td>
+      <td style="color:var(--muted)">${n(r.aphelion_au)}</td>
+      <td>${n(r.beyond_earth_au)}</td>
+      <td>${intersectionPill(r.earth_intersection_type)}</td>
+      <td>${moidColor(r.moid_au)}</td>
+      <td>${pred(r.pred_pha)}</td>
+      <td>${riskBar(r.ml_risk_pct)}</td>
+    </tr>`).join('');
+    return mkTable(head, body);
+  },
+  // ── Q16 ──────────────────────────────────────────────
+  q16(rows){
+    const head = `<tr><th>SPKID</th><th>Name</th><th>Class</th><th>PHA</th><th>Obs Days</th><th>Obs Years</th><th>Cond</th><th>e</th><th>i (°)</th><th>MOID (AU)</th><th>Anomaly</th><th>Diam (km)</th></tr>`;
+    const body = rows.map(r => `<tr>
+      <td style="color:var(--muted)">${n(r.spkid)}</td>
+      <td style="color:var(--heading);font-weight:700">${n(r.full_name)}</td>
+      <td>${cls(r.class)}</td>
+      <td>${pha(r.pha)}</td>
+      <td style="color:var(--accent)">${n(r.observation_days) !== '—' ? (+r.observation_days).toLocaleString() : '—'}</td>
+      <td style="color:var(--safe)">${n(r.observation_years)}</td>
+      <td>${condColor(r.condition_code)}</td>
+      <td>${n(r.eccentricity)}</td>
+      <td>${n(r.inclination_deg)}°</td>
+      <td>${moidColor(r.moid_au)}</td>
+      <td>${anom(r.anomaly_flag)}</td>
+      <td>${n(r.diameter_km)}</td>
+    </tr>`).join('');
+    return mkTable(head, body);
+  },
+};
+
+function mkTable(head, body){
+  if (!body) return empty();
+  return `<div class="table-wrap"><table><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+}
+function kv(label, val, c='text'){
+  const colMap = {accent:'var(--accent)',danger:'var(--danger)',warn:'var(--accent2)',accent2:'var(--accent2)',safe:'var(--safe)',text:'var(--heading)',muted:'var(--muted)'};
+  return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center">
+    <div style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;color:${colMap[c]||'var(--heading)'}">${val}</div>
+    <div style="font-size:0.62rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:4px">${label}</div>
+  </div>`;
+}
+
+/* ══════════════════════════════════════════════════════════
+   LOAD QUERY — generic dispatcher
+══════════════════════════════════════════════════════════ */
+// track active query per tab
+const tabActiveQ = {threat:'q1',size:'q4',ml:'q6',orbital:'q10',anomaly:'q11',obs:'q9'};
+const tabTitles = {
+  q1:'Q1 · PHA Threat Priority — Reliable Orbits',q2:'Q2 · Official vs ML PHA % by Class',
+  q3:'Q3 · Average Properties by Orbital Class',q4:'Q4 · Planet-Killers (Largest NEOs)',
+  q5:'Q5 · City-Killers (diam>140m, MOID<0.05 AU)',q6:'Q6 · ML Discrepancies (FP/FN)',
+  q7:'Q7 · Keyhole PHAs (ML>50% risk)',q8:'Q8 · Database Summary Dashboard',
+  q9:'Q9 · Gold-Standard Orbits (cond_code=0)',q10:'Q10 · Perihelion Distribution by Class',
+  q11:'Q11 · Anomaly Stats by Class (>10 members)',q12:'Q12 · Eccentricity Distribution by Class',
+  q13:'Q13 · High-Eccentricity Wildcards (e>0.9)',q14:'Q14 · Sun-Grazers & High-Inclination',
+  q15:'Q15 · Orbital Ellipse Reconstruction',q16:'Q16 · Longest Observational Arcs (>27yr)'
+};
+
+async function loadQ(action, limit, resultId, titleId){
+  const el = document.getElementById(resultId);
+  const ti = titleId ? document.getElementById(titleId) : null;
+  el.innerHTML = loader();
+  if (ti) ti.textContent = tabTitles[action] || action.toUpperCase();
+
+  const params = {action, limit: limit || 25};
+
+  // Q6 filter chips
+  if (action === 'q6'){
+    const fc = document.querySelector('#ml-filter-chips .chip.active');
+    if (fc){
+      const txt = fc.textContent.trim();
+      if (txt === 'False Neg') params.filter = 'fn';
+      else if (txt === 'False Pos') params.filter = 'fp';
+    }
+  }
+
+  try {
+    const json = await apiFetch(params);
+    const data = json.data;
+    const builder = TABLE_BUILDERS[action];
+    if (!builder){ el.innerHTML = errBox('No renderer for ' + action); return; }
+    // Q8 returns single object
+    if (action === 'q8'){
+      el.innerHTML = builder(data);
+    } else {
+      el.innerHTML = data.length === 0 ? empty() : builder(data);
+      // update meta
+      const meta = document.getElementById(resultId.replace('-result','-meta'));
+      if (meta) meta.textContent = `${data.length} rows returned`;
+    }
+  } catch(e){
+    el.innerHTML = errBox('API error: ' + e.message + ' — ensure api.php is reachable and DB is connected.');
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   STATS LOADER
+══════════════════════════════════════════════════════════ */
+async function loadStats(){
+  try {
+    const json = await apiFetch({action:'stats'});
+    const s = json.data;
+    document.getElementById('s-total').textContent  = (+s.total_asteroids||0).toLocaleString();
+    document.getElementById('s-pha').textContent    = (+s.official_pha_count||0).toLocaleString();
+    document.getElementById('s-mlpha').textContent  = (+s.ml_pred_pha_count||0).toLocaleString();
+    document.getElementById('s-anom').textContent   = (+s.anomaly_count||0).toLocaleString();
+    document.getElementById('s-risk').textContent   = (s.avg_ml_risk_pct ?? '—') + (s.avg_ml_risk_pct ? '%' : '');
+  } catch(e){
+    ['s-total','s-pha','s-mlpha','s-anom','s-risk'].forEach(id => document.getElementById(id).textContent = 'ERR');
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   SEARCH
+══════════════════════════════════════════════════════════ */
+async function applyFilters(){
+  const el    = document.getElementById('search-result');
+  const title = document.getElementById('search-title');
+  const limit = document.querySelector('#search-chips .chip.active')?.textContent || 100;
+  el.innerHTML = loader();
+
+  const params = {
+    action: 'search',
+    limit,
+    search:  document.getElementById('globalSearch').value.trim(),
+    class:   document.getElementById('f-class').value.split('—')[0].trim(),
+    pha:     document.getElementById('f-pha').value,
+    pred:    document.getElementById('f-pred').value,
+    anomaly: document.getElementById('f-anomaly').value,
+    cond:    document.getElementById('f-cond').value,
+    moid:    document.getElementById('f-moid').value,
+    diam:    document.getElementById('f-diam').value,
+    risk:    document.getElementById('f-risk').value,
+  };
+
+  try {
+    const json = await apiFetch(params);
+    const rows = json.data;
+    document.getElementById('row-count').textContent = rows.length;
+    title.textContent = `Filtered Results · ${rows.length} rows`;
+    el.innerHTML = rows.length === 0 ? empty() : TABLE_BUILDERS.search(rows);
+  } catch(e){
+    el.innerHTML = errBox('Search error: ' + e.message);
+  }
+}
+
+function resetFilters(){
+  ['f-class','f-pha','f-pred','f-anomaly'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-cond').value = 9;  document.getElementById('f-cond').dispatchEvent(new Event('input'));
+  document.getElementById('f-moid').value = 0.3;document.getElementById('f-moid').dispatchEvent(new Event('input'));
+  document.getElementById('f-diam').value = 0;  document.getElementById('f-diam').dispatchEvent(new Event('input'));
+  document.getElementById('f-risk').value = 0;  document.getElementById('f-risk').dispatchEvent(new Event('input'));
+  document.getElementById('globalSearch').value = '';
+  document.getElementById('search-title').textContent = 'All NEOs · Showing top 100';
+  applyFilters();
+}
+
+function setQuickFilter(type){
+  resetFilters();
+  if (type==='pha'){
+    document.getElementById('f-pha').value = 'Y';
+    document.getElementById('search-title').textContent = 'PHAs Only — Confirmed Hazardous Objects';
+  } else if (type==='citykiller'){
+    document.getElementById('f-moid').value = 0.05; document.getElementById('f-moid').dispatchEvent(new Event('input'));
+    document.getElementById('f-diam').value = 0.14; document.getElementById('f-diam').dispatchEvent(new Event('input'));
+    document.getElementById('search-title').textContent = 'City-Killers — diam>140m AND MOID<0.05 AU';
+  } else if (type==='goldstandard'){
+    document.getElementById('f-cond').value = 0; document.getElementById('f-cond').dispatchEvent(new Event('input'));
+    document.getElementById('search-title').textContent = 'Gold-Standard Orbits — Condition Code = 0';
+  }
+  applyFilters();
+}
+
+/* ══════════════════════════════════════════════════════════
+   TABS
+══════════════════════════════════════════════════════════ */
+// Map tab → initial query to load
+const tabInitQ = {threat:'q1',size:'q4',ml:'q6',orbital:'q10',anomaly:'q11',obs:'q9'};
+const tabLoaded = {};
+
+document.querySelectorAll('.tab-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    const tab = b.dataset.tab;
+    document.getElementById('tab-' + tab).classList.add('active');
+    // Lazy-load tab on first visit
+    if (!tabLoaded[tab] && tabInitQ[tab]){
+      tabLoaded[tab] = true;
+      const q = tabInitQ[tab];
+      const chips = document.querySelector(`#tab-${tab} .topn-bar .chip.active`);
+      const limit = chips ? chips.textContent : 25;
+      loadQ(q, limit, tab+'-result', tab+'-title');
+    }
+  });
+});
+
+/* ══════════════════════════════════════════════════════════
+   QUERY CARD SELECT + RELOAD
+══════════════════════════════════════════════════════════ */
+function selectQ(el, tab){
+  document.querySelectorAll('#tab-' + tab + ' .qcard').forEach(c => c.classList.remove('active-q'));
+  el.classList.add('active-q');
+}
+
+// Derive active query from active qcard title in a tab
+function getActiveQForTab(tab){
+  const card = document.querySelector(`#tab-${tab} .qcard.active-q .qcard-title`);
+  if (!card) return tabInitQ[tab];
+  const t = card.textContent.trim();
+  const m = t.match(/^(Q\d+)/i);
+  return m ? 'q' + m[1].slice(1).toLowerCase() : tabInitQ[tab];
+}
+
+function reloadActiveQ(tab){
+  const q     = getActiveQForTab(tab);
+  const chips = document.querySelector(`#tab-${tab} .topn-bar .chip.active`);
+  const limit = chips ? chips.textContent : 25;
+  tabActiveQ[tab] = q;
+  loadQ(q, limit, tab + '-result', tab + '-title');
+}
+
+/* ══════════════════════════════════════════════════════════
+   CHIP SELECT
+══════════════════════════════════════════════════════════ */
+function chipSelect(el, groupId){
+  document.getElementById(groupId).querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+/* ══════════════════════════════════════════════════════════
+   RANGE SLIDERS
+══════════════════════════════════════════════════════════ */
+[
+  ['f-cond','f-cond-val', v => `≤ ${v}`],
+  ['f-moid','f-moid-val', v => `≤ ${parseFloat(v).toFixed(3)} AU`],
+  ['f-diam','f-diam-val', v => `≥ ${parseFloat(v).toFixed(1)} km`],
+  ['f-risk','f-risk-val', v => `≥ ${v}%`],
+].forEach(([id, vid, fmt]) => {
+  const el = document.getElementById(id), vl = document.getElementById(vid);
+  if (!el) return;
+  const upd = () => {
+    vl.textContent = fmt(el.value);
+    const p = (el.value - el.min) / (el.max - el.min) * 100;
+    el.style.background = `linear-gradient(to right,var(--accent) ${p}%,var(--surface2) ${p}%)`;
+  };
+  el.addEventListener('input', upd); upd();
+});
+
+/* ══════════════════════════════════════════════════════════
+   CSV EXPORT
+══════════════════════════════════════════════════════════ */
+function exportCSV(action){
+  const limit = 1000;
+  window.open(`${API}?action=export&q=${action}&limit=${limit}`, '_blank');
+}
+
+/* ══════════════════════════════════════════════════════════
+   SEARCH ON ENTER
+══════════════════════════════════════════════════════════ */
+document.getElementById('globalSearch').addEventListener('keydown', e => {
+  if (e.key === 'Enter') applyFilters();
+});
+
+/* ══════════════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════════════ */
+loadStats();
+applyFilters(); // load search tab on startup
+</script>
+</body>
+</html>
