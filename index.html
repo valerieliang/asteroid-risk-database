@@ -451,6 +451,17 @@ footer a{color:var(--accent);text-decoration:none;}
   <p>☄️ NEO Sentry · Planetary Defense Intelligence Interface · Live database via <code>api.php</code></p>
   <p style="margin-top:6px;">16 analytical queries across NEO, PhysicalProperties, OrbitalElements, ObservationRecord, PredictedPHAs, OrbitalAnomalies</p>
 </footer>
+
+<!-- Q15 ORBIT MODAL -->
+<div id="orbit-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(2,11,20,0.88);backdrop-filter:blur(6px);align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border:1px solid rgba(0,180,255,0.3);border-radius:18px;padding:24px 28px;max-width:560px;width:92%;position:relative;box-shadow:0 24px 80px rgba(0,0,0,0.6);">
+    <button onclick="closeOrbitModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;line-height:1;">✕</button>
+    <div id="orbit-modal-name" style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;color:var(--heading);margin-bottom:4px;padding-right:28px;"></div>
+    <div id="orbit-modal-meta" style="font-size:0.68rem;color:var(--muted);margin-bottom:16px;"></div>
+    <canvas id="orbit-canvas" width="500" height="400" style="width:100%;border-radius:10px;background:#020b14;display:block;"></canvas>
+    <div style="margin-top:10px;font-size:0.63rem;color:var(--muted);text-align:center;">Click outside or Esc to close · Click another row to switch</div>
+  </div>
+</div>
 </div><!-- /shell -->
 
 <script>
@@ -848,12 +859,13 @@ const TABLE_BUILDERS = {
     </tr>`).join('');
     return mkTable(head, body);
   },
-  // ── Q15 ──────────────────────────────────────────────
+  // ── Q15 ──────────────────────────────────────────────────
   q15(rows){
+    window._q15rows = rows;
     const head = `<tr><th>SPKID</th><th>Name</th><th>Class</th><th>e</th><th>Semi-Major (AU)</th><th>Perihelion (AU)</th><th>Aphelion (AU)</th><th>Beyond Earth (AU)</th><th>Earth Type</th><th>MOID (AU)</th><th>Pred PHA</th><th>ML Risk %</th></tr>`;
     const body = rows.map((r,i) => `<tr class="q15-row" data-idx="${i}" style="cursor:pointer;" title="Click to visualize orbit">
       <td style="color:var(--muted)">${n(r.spkid)}</td>
-      <td class="q15-name" style="color:var(--accent);font-weight:700;text-decoration:underline dotted;text-underline-offset:3px;">${n(r.full_name)}</td>
+      <td style="color:var(--accent);font-weight:700;text-decoration:underline dotted;text-underline-offset:3px;">${n(r.full_name)}</td>
       <td>${cls(r.class)}</td>
       <td>${n(r.eccentricity)}</td>
       <td style="color:var(--accent)">${n(r.semi_major_axis_au)}</td>
@@ -865,197 +877,7 @@ const TABLE_BUILDERS = {
       <td>${pred(r.pred_pha)}</td>
       <td>${riskBar(r.ml_risk_pct)}</td>
     </tr>`).join('');
-
-    // Stash row data for the modal to access
-    const safeRows = JSON.stringify(rows).replace(/</g,'\\u003c').replace(/>/g,'\\u003e');
-
-    const modal = `
-<div id="orbit-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(2,11,20,0.88);backdrop-filter:blur(6px);align-items:center;justify-content:center;" onclick="if(event.target===this)closeOrbitModal()">
-  <div style="background:var(--surface);border:1px solid rgba(0,180,255,0.3);border-radius:18px;padding:24px 28px;max-width:560px;width:92%;position:relative;box-shadow:0 24px 80px rgba(0,0,0,0.6);">
-    <button onclick="closeOrbitModal()" style="position:absolute;top:14px;right:16px;background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;line-height:1;" title="Close">✕</button>
-    <div id="orbit-modal-name" style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;color:var(--heading);margin-bottom:4px;padding-right:28px;"></div>
-    <div id="orbit-modal-meta" style="font-size:0.68rem;color:var(--muted);margin-bottom:16px;"></div>
-    <canvas id="orbit-canvas" width="500" height="400" style="width:100%;border-radius:10px;background:#020b14;display:block;"></canvas>
-    <div style="margin-top:10px;font-size:0.63rem;color:var(--muted);text-align:center;">Click anywhere outside or press Esc to close · Click another row to switch</div>
-  </div>
-</div>`;
-
-    const script = `<script>
-(function(){
-  var _rows = ${safeRows};
-  var _raf = null;
-  var _angle = 0;
-
-  // Attach click handlers after DOM is painted
-  setTimeout(function(){
-    document.querySelectorAll('.q15-row').forEach(function(tr){
-      tr.addEventListener('click', function(e){
-        e.stopPropagation();
-        var idx = parseInt(tr.dataset.idx);
-        openOrbitModal(idx);
-      });
-    });
-    document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeOrbitModal(); });
-  }, 0);
-
-  window.openOrbitModal = function(idx){
-    var r = _rows[idx];
-    if (!r) return;
-    document.getElementById('orbit-modal').style.display = 'flex';
-    document.getElementById('orbit-modal-name').textContent = r.full_name || ('SPKID '+r.spkid);
-    var typeLabel = r.earth_intersection_type || '—';
-    document.getElementById('orbit-modal-meta').innerHTML =
-      'e = ' + (r.eccentricity||'?') +
-      ' &nbsp;|&nbsp; a = ' + (r.semi_major_axis_au||'?') + ' AU' +
-      ' &nbsp;|&nbsp; q = ' + (r.perihelion_au||'?') + ' AU' +
-      ' &nbsp;|&nbsp; Q = ' + (r.aphelion_au||'?') + ' AU' +
-      ' &nbsp;|&nbsp; <span style="color:var(--accent2)">' + typeLabel + '</span>';
-    _angle = 0;
-    if (_raf) cancelAnimationFrame(_raf);
-    startOrbitAnim(r);
-    // Highlight active row
-    document.querySelectorAll('.q15-row').forEach(function(tr){ tr.style.background=''; });
-    var active = document.querySelector('.q15-row[data-idx="'+idx+'"]');
-    if (active) active.style.background = 'rgba(0,180,255,0.08)';
-  };
-
-  window.closeOrbitModal = function(){
-    document.getElementById('orbit-modal').style.display = 'none';
-    if (_raf) { cancelAnimationFrame(_raf); _raf = null; }
-    document.querySelectorAll('.q15-row').forEach(function(tr){ tr.style.background=''; });
-  };
-
-  function startOrbitAnim(r){
-    var canvas = document.getElementById('orbit-canvas');
-    var ctx = canvas.getContext('2d');
-    var W = canvas.width, H = canvas.height;
-    var e = parseFloat(r.eccentricity) || 0;
-    var a_raw = parseFloat(r.semi_major_axis_au) || 1;
-    // Scale so the ellipse fits nicely
-    var margin = 60;
-    var maxR = Math.min(W, H) / 2 - margin;
-    var a = maxR; // semi-major axis in px
-    var b = a * Math.sqrt(Math.max(0, 1 - e*e)); // semi-minor
-    var c = a * e; // focus offset
-    // Sun sits at one focus: cx + c from ellipse centre
-    var cx = W/2 + c * 0.7, cy = H/2; // shift centre left to give room
-
-    // Class colour
-    var classColors = {Apollo:'#ff6b35',Aten:'#ff3b3b',Amor:'#00b4ff',Atira:'#00e09a'};
-    var neoCol = classColors[r.class] || '#00b4ff';
-
-    // Speed varies: faster near perihelion (Kepler's 2nd law approximation)
-    function angleStep(theta){
-      // r(theta) = a(1-e²)/(1+e·cos θ) — closer = faster
-      var dist = a*(1-e*e)/(1+e*Math.cos(theta));
-      return 0.012 * (a / dist); // proportional speed
-    }
-
-    function draw(){
-      ctx.clearRect(0,0,W,H);
-
-      // Starfield (static, seeded by canvas size)
-      ctx.fillStyle = '#020b14';
-      ctx.fillRect(0,0,W,H);
-      var stars = 80;
-      for(var i=0;i<stars;i++){
-        // deterministic pseudo-random
-        var sx = ((i*137+W*i)%W);
-        var sy = ((i*251+H*i)%H);
-        var sz = (i%3===0)?1.5:(i%5===0)?1.2:0.7;
-        ctx.beginPath();
-        ctx.arc(sx,sy,sz,0,Math.PI*2);
-        ctx.fillStyle='rgba(255,255,255,'+(0.2+((i*31)%10)/40)+')';
-        ctx.fill();
-      }
-
-      // Earth orbit reference (1 AU circle) — scale: 1 AU = a/a_raw px
-      var auPx = a / a_raw;
-      ctx.beginPath();
-      ctx.arc(cx - c*0.7 + c*0, cy, auPx, 0, Math.PI*2); // Earth orbit centred on Sun
-      // Sun is at (cx, cy); earth orbit radius = 1 AU in px
-      var sunX = cx, sunY = cy;
-      ctx.beginPath();
-      ctx.arc(sunX, sunY, auPx, 0, Math.PI*2);
-      ctx.strokeStyle = 'rgba(0,180,255,0.15)';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([4,5]);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.fillStyle='rgba(0,180,255,0.5)';
-      ctx.font='9px Space Mono,monospace';
-      ctx.fillText('Earth orbit (1 AU)', sunX + auPx + 4, sunY - 4);
-
-      // Ellipse centre for drawing: sun focus is at (cx,cy), centre is at (cx - c_px, cy)
-      var c_px = e * a;
-      var ellCx = sunX - c_px;
-      ctx.beginPath();
-      ctx.ellipse(ellCx, cy, a, b, 0, 0, Math.PI*2);
-      ctx.strokeStyle = neoCol;
-      ctx.lineWidth = 1.5;
-      ctx.globalAlpha = 0.5;
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-
-      // Orbit trail arc behind NEO
-      var trailLen = 1.2;
-      ctx.beginPath();
-      for(var t=_angle-trailLen; t<=_angle; t+=0.04){
-        var rx = ellCx + a*Math.cos(t);
-        var ry = cy   + b*Math.sin(t);
-        if(t===_angle-trailLen) ctx.moveTo(rx,ry); else ctx.lineTo(rx,ry);
-      }
-      ctx.strokeStyle = neoCol;
-      ctx.lineWidth = 2.5;
-      ctx.globalAlpha = 0.7;
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-
-      // Sun glow
-      var sunGrad = ctx.createRadialGradient(sunX,sunY,0,sunX,sunY,22);
-      sunGrad.addColorStop(0,'#fff9c0');
-      sunGrad.addColorStop(0.4,'#ffcc00');
-      sunGrad.addColorStop(1,'rgba(255,140,0,0)');
-      ctx.beginPath();
-      ctx.arc(sunX,sunY,22,0,Math.PI*2);
-      ctx.fillStyle=sunGrad;
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(sunX,sunY,8,0,Math.PI*2);
-      ctx.fillStyle='#fff5a0';
-      ctx.fill();
-
-      // NEO position
-      var neoX = ellCx + a*Math.cos(_angle);
-      var neoY = cy    + b*Math.sin(_angle);
-
-      // Glow behind NEO
-      var neoGrad = ctx.createRadialGradient(neoX,neoY,0,neoX,neoY,12);
-      neoGrad.addColorStop(0,neoCol);
-      neoGrad.addColorStop(1,'rgba(0,0,0,0)');
-      ctx.beginPath(); ctx.arc(neoX,neoY,12,0,Math.PI*2);
-      ctx.fillStyle=neoGrad; ctx.fill();
-      ctx.beginPath(); ctx.arc(neoX,neoY,5,0,Math.PI*2);
-      ctx.fillStyle=neoCol; ctx.fill();
-
-      // Labels: perihelion / aphelion
-      ctx.font='9px Space Mono,monospace';
-      ctx.fillStyle='rgba(255,255,255,0.35)';
-      ctx.fillText('q='+r.perihelion_au+' AU', ellCx+a+4, cy+14);
-      ctx.fillText('Q='+r.aphelion_au+' AU',   ellCx-a-4-(r.aphelion_au?String(r.aphelion_au).length*5.5:30), cy+14);
-
-      // Advance angle
-      _angle += angleStep(_angle);
-      if(_angle > Math.PI*2) _angle -= Math.PI*2;
-
-      _raf = requestAnimationFrame(draw);
-    }
-    draw();
-  }
-})();
-<\/script>`;
-
-    return modal + script + mkTable(head, body);
+    return mkTable(head, body);
   },
   // ── Q16 ──────────────────────────────────────────────
   q16(rows){
@@ -1134,6 +956,7 @@ async function loadQ(action, limit, resultId, titleId){
       el.innerHTML = builder(data);
     } else {
       el.innerHTML = data.length === 0 ? empty() : builder(data);
+      if (action === 'q15') q15Setup();
       // update meta
       const meta = document.getElementById(resultId.replace('-result','-meta'));
       if (meta) meta.textContent = `${data.length} rows returned`;
@@ -1387,6 +1210,123 @@ function exportCSV(action){
    INIT
 ══════════════════════════════════════════════════════════ */
 loadStats();
+
+/* ══════════════════════════════════════════════════════════
+   Q15 ORBIT VISUALIZER
+══════════════════════════════════════════════════════════ */
+window._q15rows = [];
+var _orbitRaf = null;
+var _orbitAngle = 0;
+
+document.addEventListener('click', function(e) {
+  var row = e.target.closest && e.target.closest('.q15-row');
+  if (row) { e.stopPropagation(); openOrbitModal(parseInt(row.dataset.idx)); return; }
+  var modal = document.getElementById('orbit-modal');
+  if (modal && e.target === modal) closeOrbitModal();
+});
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeOrbitModal();
+});
+
+function q15Setup() { /* row data already on window._q15rows, delegation handles clicks */ }
+
+function openOrbitModal(idx) {
+  var r = (window._q15rows || [])[idx];
+  if (!r) return;
+  document.querySelectorAll('.q15-row').forEach(function(tr) { tr.style.background = ''; });
+  var ar = document.querySelector('.q15-row[data-idx="' + idx + '"]');
+  if (ar) ar.style.background = 'rgba(0,180,255,0.08)';
+  document.getElementById('orbit-modal-name').textContent = r.full_name || ('SPKID ' + r.spkid);
+  document.getElementById('orbit-modal-meta').innerHTML =
+    'e = ' + (r.eccentricity||'?') + ' &nbsp;|&nbsp; a = ' + (r.semi_major_axis_au||'?') + ' AU' +
+    ' &nbsp;|&nbsp; q = ' + (r.perihelion_au||'?') + ' AU' +
+    ' &nbsp;|&nbsp; Q = ' + (r.aphelion_au||'?') + ' AU' +
+    (r.earth_intersection_type ? ' &nbsp;|&nbsp; <span style="color:var(--accent2)">' + r.earth_intersection_type + '</span>' : '');
+  document.getElementById('orbit-modal').style.display = 'flex';
+  if (_orbitRaf) cancelAnimationFrame(_orbitRaf);
+  _orbitAngle = 0;
+  startOrbitAnim(r);
+}
+
+function closeOrbitModal() {
+  var modal = document.getElementById('orbit-modal');
+  if (modal) modal.style.display = 'none';
+  if (_orbitRaf) { cancelAnimationFrame(_orbitRaf); _orbitRaf = null; }
+  document.querySelectorAll('.q15-row').forEach(function(tr) { tr.style.background = ''; });
+}
+
+function startOrbitAnim(r) {
+  var canvas = document.getElementById('orbit-canvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var W = canvas.width, H = canvas.height;
+  var e     = Math.min(parseFloat(r.eccentricity) || 0, 0.98);
+  var a_raw = parseFloat(r.semi_major_axis_au) || 1;
+  var a     = Math.min(W, H) / 2 - 56;
+  var b     = a * Math.sqrt(Math.max(0, 1 - e * e));
+  var c_px  = a * e;
+  var sunX  = W / 2 + c_px * 0.5;
+  var sunY  = H / 2;
+  var ellCx = sunX - c_px;
+  var auPx  = a / a_raw;
+  var classColors = {Apollo:'#ff6b35',Aten:'#ff3b3b',Amor:'#00b4ff',Atira:'#00e09a'};
+  var neoCol = classColors[r.class] || '#00b4ff';
+
+  var stars = [];
+  for (var i = 0; i < 90; i++) stars.push({x:(i*137*7+53)%W, y:(i*251*3+17)%H, r:i%3===0?1.4:i%5===0?1.1:0.6, a:0.15+(i*31%10)/35});
+
+  function step(theta) { var d=a*(1-e*e)/(1+e*Math.cos(theta)); return 0.010*(a/Math.max(d,1)); }
+
+  function draw() {
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle='#020b14'; ctx.fillRect(0,0,W,H);
+    stars.forEach(function(s){ ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fillStyle='rgba(255,255,255,'+s.a+')'; ctx.fill(); });
+
+    // Earth orbit
+    ctx.beginPath(); ctx.arc(sunX,sunY,auPx,0,Math.PI*2);
+    ctx.strokeStyle='rgba(0,180,255,0.18)'; ctx.lineWidth=1; ctx.setLineDash([4,5]); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle='rgba(0,180,255,0.45)'; ctx.font='8px Space Mono,monospace';
+    ctx.fillText('Earth (1 AU)', sunX+auPx+4, sunY-3);
+
+    // Ellipse
+    ctx.beginPath(); ctx.ellipse(ellCx,sunY,a,b,0,0,Math.PI*2);
+    ctx.strokeStyle=neoCol; ctx.lineWidth=1.5; ctx.globalAlpha=0.45; ctx.stroke(); ctx.globalAlpha=1;
+
+    // Trail
+    ctx.beginPath();
+    var first=true;
+    for (var t=_orbitAngle-1.4; t<=_orbitAngle; t+=0.03) {
+      var tx=ellCx+a*Math.cos(t), ty=sunY+b*Math.sin(t);
+      if(first){ctx.moveTo(tx,ty);first=false;}else{ctx.lineTo(tx,ty);}
+    }
+    ctx.strokeStyle=neoCol; ctx.lineWidth=2.5; ctx.globalAlpha=0.75; ctx.stroke(); ctx.globalAlpha=1;
+
+    // Sun
+    var sg=ctx.createRadialGradient(sunX,sunY,0,sunX,sunY,26);
+    sg.addColorStop(0,'#fff9c0'); sg.addColorStop(0.35,'#ffcc00'); sg.addColorStop(1,'rgba(255,140,0,0)');
+    ctx.beginPath(); ctx.arc(sunX,sunY,26,0,Math.PI*2); ctx.fillStyle=sg; ctx.fill();
+    ctx.beginPath(); ctx.arc(sunX,sunY,8,0,Math.PI*2); ctx.fillStyle='#fff5a0'; ctx.fill();
+
+    // NEO
+    var nx=ellCx+a*Math.cos(_orbitAngle), ny=sunY+b*Math.sin(_orbitAngle);
+    var ng=ctx.createRadialGradient(nx,ny,0,nx,ny,14);
+    ng.addColorStop(0,neoCol); ng.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.beginPath(); ctx.arc(nx,ny,14,0,Math.PI*2); ctx.fillStyle=ng; ctx.fill();
+    ctx.beginPath(); ctx.arc(nx,ny,5,0,Math.PI*2); ctx.fillStyle=neoCol; ctx.fill();
+
+    // Labels
+    ctx.font='8px Space Mono,monospace'; ctx.fillStyle='rgba(255,255,255,0.3)';
+    ctx.fillText('q='+r.perihelion_au+' AU', ellCx+a+5, sunY+12);
+    var ql='Q='+r.aphelion_au+' AU';
+    ctx.fillText(ql, ellCx-a-ctx.measureText(ql).width-5, sunY+12);
+
+    _orbitAngle += step(_orbitAngle);
+    if (_orbitAngle > Math.PI*2) _orbitAngle -= Math.PI*2;
+    _orbitRaf = requestAnimationFrame(draw);
+  }
+  draw();
+}
 </script>
 </body>
 </html>
