@@ -1101,7 +1101,6 @@ function renderProfile(r){
     tile('Condition Code', r.condition_code, '', r.condition_code == 0 ? 'var(--safe)' : r.condition_code <= 2 ? 'var(--text)' : 'var(--accent2)') +
     tile('Data Arc', r.data_arc != null ? (+r.data_arc).toLocaleString() : null, 'days') +
     tile('Data Arc', r.data_arc_years != null ? parseFloat(r.data_arc_years).toFixed(1) : null, 'yr') +
-    tile('Obs Used', r.n_obs_used != null ? (+r.n_obs_used).toLocaleString() : null) +
     tile('First Obs', r.first_obs) +
     tile('Last Obs', r.last_obs)
   );

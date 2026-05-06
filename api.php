@@ -150,7 +150,6 @@ switch ($action) {
                 ob.condition_code,
                 ob.data_arc,
                 ROUND(ob.data_arc / 365.25, 2)                                      AS data_arc_years,
-                ob.n_obs_used,
                 ob.first_obs,
                 ob.last_obs,
 
