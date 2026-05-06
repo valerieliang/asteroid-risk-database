@@ -1099,7 +1099,7 @@ function renderProfile(r){
   const obsSection = section('🔭', 'Observation Record',
     tile('Condition Code', r.condition_code, '', r.condition_code == 0 ? 'var(--safe)' : r.condition_code <= 2 ? 'var(--text)' : 'var(--accent2)') +
     tile('Data Arc', r.data_arc != null ? (+r.data_arc).toLocaleString() : null, 'days') +
-    tile('Data Arc', r.data_arc_years != null ? parseFloat(r.data_arc_years).toFixed(1) : null, 'yr') +
+    tile('Data Arc', r.data_arc_years != null ? parseFloat(r.data_arc_years).toFixed(1) : null, 'yr')
   );
 
   const mlSection = `
