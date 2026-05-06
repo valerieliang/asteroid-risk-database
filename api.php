@@ -133,28 +133,26 @@ switch ($action) {
                 n.class,
                 n.pha,
 
-                ROUND(pp.diameter, 4)                                               AS diameter,
+                ROUND(pp.diameter, 4)                                       AS diameter,
                 pp.H,
 
-                ROUND(oe.e, 6)                                                      AS e,
-                ROUND(oe.q, 6)                                                      AS q,
+                ROUND(oe.e, 6)                                              AS e,
+                ROUND(oe.q, 6)                                              AS q,
                 CASE
                     WHEN oe.e IS NOT NULL AND oe.e < 1.0
                     THEN ROUND(oe.q * (1 + oe.e) / NULLIF(1 - oe.e, 0), 6)
                     ELSE NULL
-                END                                                                 AS aphelion_au,
-                ROUND(oe.i, 4)                                                      AS i,
-                ROUND(oe.moid, 6)                                                   AS moid,
-                ROUND(oe.moid_ld, 2)                                                AS moid_ld,
+                END                                                         AS aphelion_au,
+                ROUND(oe.i, 4)                                              AS i,
+                ROUND(oe.moid, 6)                                           AS moid,
+                ROUND(oe.moid_ld, 2)                                        AS moid_ld,
 
                 ob.condition_code,
                 ob.data_arc,
-                ROUND(ob.data_arc / 365.25, 2)                                      AS data_arc_years,
-                ob.first_obs,
-                ob.last_obs,
+                ROUND(ob.data_arc / 365.25, 2)                              AS data_arc_years,
 
                 p.pred_pha,
-                ROUND(p.pha_prob * 100, 4)                                          AS pha_prob_pct,
+                ROUND(p.pha_prob * 100, 4)                                  AS pha_prob_pct,
 
                 oa.anomaly_flag,
                 oa.moid_anomaly_yn,

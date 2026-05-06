@@ -1053,7 +1053,6 @@ function renderProfile(r){
     </div>
     <div style="text-align:right;font-size:0.68rem;color:var(--muted);">
       <div>SPKID <span style="color:var(--accent);font-weight:700">${r.spkid}</span></div>
-      ${r.last_obs ? `<div style="margin-top:4px;">Last obs: <span style="color:var(--text)">${r.last_obs}</span></div>` : ''}
     </div>
   </div>`;
 
@@ -1101,8 +1100,6 @@ function renderProfile(r){
     tile('Condition Code', r.condition_code, '', r.condition_code == 0 ? 'var(--safe)' : r.condition_code <= 2 ? 'var(--text)' : 'var(--accent2)') +
     tile('Data Arc', r.data_arc != null ? (+r.data_arc).toLocaleString() : null, 'days') +
     tile('Data Arc', r.data_arc_years != null ? parseFloat(r.data_arc_years).toFixed(1) : null, 'yr') +
-    tile('First Obs', r.first_obs) +
-    tile('Last Obs', r.last_obs)
   );
 
   const mlSection = `
