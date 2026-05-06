@@ -243,7 +243,6 @@ footer a{color:var(--accent);text-decoration:none;}
         <button class="chip" onclick="chipSelect(this,'threat-chips');reloadActiveQ('threat')">100</button>
         <button class="chip" onclick="chipSelect(this,'threat-chips');reloadActiveQ('threat')">250</button>
       </div>
-      <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="exportCSV(tabActiveQ.threat)">⬇ Export CSV</button>
     </div>
     <div class="results-box">
       <div class="results-header">
@@ -1177,14 +1176,6 @@ function reloadActiveQ(tab){
 function chipSelect(el, groupId){
   document.getElementById(groupId).querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
-}
-
-/* ══════════════════════════════════════════════════════════
-   CSV EXPORT
-══════════════════════════════════════════════════════════ */
-function exportCSV(action){
-  const limit = 1000;
-  window.open(`${API}?action=export&q=${action}&limit=${limit}`, '_blank');
 }
 
 
