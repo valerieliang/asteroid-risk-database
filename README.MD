@@ -15,7 +15,7 @@ The NEO Sentry interface answers planetary defense questions such as:
 - **How well‑determined is each orbit?** (condition_code, data_arc, Q9, Q16)
 - **Which orbital classes have the highest anomaly rates?** (Q11)
 
-The system includes a **Random Forest PHA classifier** and a **statistical anomaly flagger** that operate on the cleaned JPL data, producing `pred_pha` (ML hazard prediction) and `anomaly_flag` (orbital outlier detection) tables.
+The system includes a **Random Forest PHA classifier** (AUC > 0.99) and a **statistical anomaly flagger** (≥2 standard deviations from class mean for eccentricity, inclination, or MOID) that operate on the cleaned JPL data, producing `pred_pha` (ML hazard prediction) and `anomaly_flag` (orbital outlier detection) tables.
 
 ---
 
@@ -46,9 +46,6 @@ All relationships use foreign keys with `ON DELETE CASCADE`.
 | `requirements.txt` | Python dependencies (`pandas`, `scikit‑learn`, `matplotlib`) |
 | `api.php` | JSON middleware: all 16 queries + search + stats + CSV export |
 | `index.html` | Single‑page interface with 7 tabs, live stats, filters, and results tables |
-| `process.txt` | Full documentation of cleaning steps, ML pipeline, and load order |
-
-> **Note:** The actual `pha_classifier/` and `anomaly_flagger/` directories are referenced in `process.txt` but not included in the upload. The database schema and API are fully compatible with their output CSVs (`predictions_unlabelled.csv`, `anomalies_only.csv`).
 
 ---
 
@@ -57,16 +54,17 @@ All relationships use foreign keys with `ON DELETE CASCADE`.
 ### 1. Prerequisites
 
 - **MySQL** server (local or remote)
-- **PHP** ≥ 7.4 (for `api.php`)
+- **PHP** ≥ 7.4 (for `api.php`) - Note: JHU ugrad servers use older PHP versions
 - **Python** ≥ 3.9 with pip
 - A modern web browser
+- JHU CS ugrad machine access (for web hosting)
 
 ### 2. Obtain the Raw JPL Data
 
 Download `sbdb_query_results.csv` from the [JPL Small‑Body Database Query Tool](https://ssd.jpl.nasa.gov/tools/sbdb_query.html).  
 Select **all available fields** and filter for `neo = 'Y'` (Near‑Earth Objects only).
 
-Place the file in a `data/` directory:
+**Important:** Ensure the file is placed in the `data/` directory:
 
 ```bash
 mkdir data
@@ -79,6 +77,11 @@ mv ~/Downloads/sbdb_query_results.csv data/
 pip install -r requirements.txt
 ```
 
+Or install individually:
+```bash
+pip install numpy pandas scikit-learn matplotlib
+```
+
 ### 4. Clean the Raw CSV → 4 Table CSVs
 
 ```bash
@@ -86,7 +89,6 @@ python process.py --input data/sbdb_query_results.csv
 ```
 
 This creates:
-
 - `data/neo_cleaned.csv`
 - `data/physical_properties_cleaned.csv`
 - `data/orbital_elements_cleaned.csv`
@@ -94,70 +96,132 @@ This creates:
 
 ### 5. Run ML Prediction & Anomaly Detection
 
-If you have the `pha_classifier` and `anomaly_flagger` pipelines:
-
+**Random Forest Classifier:**
 ```bash
-python pha_classifier/run_pipeline.py          # → data/predictions_unlabelled.csv
-python anomaly_flagger/flagger.py              # → data/anomalies_only.csv
+python pha_classifier/run_pipeline.py
+```
+This generates `data/predictions_unlabelled.csv` with predicted PHA status and probability scores (0-100).
+
+**Anomaly Detection:**
+```bash
+python anomaly_flagger/flagger.py
+```
+This generates `data/anomalies_only.csv` flagging objects with eccentricity, inclination, or MOID deviations ≥2 standard deviations from class mean.
+
+### 6. Set Up MySQL Database
+
+Connect to the JHU MySQL server:
+```bash
+mysql -h dbase.cs.jhu.edu -u 26sp_<JHED> -p 26sp_<JHED>_db
 ```
 
-Without these, the `PredictedPHAs` and `OrbitalAnomalies` tables will remain empty — the queries will still work but show `NULL` for ML and anomaly columns.
-
-### 6. Create the MySQL Database and Tables
-
-```bash
-mysql -u root -p
-CREATE DATABASE neo_hazard_db;
-USE neo_hazard_db;
-SOURCE setup.sql;
-EXIT;
-```
-
-### 7. Load the Cleaned CSV Data
-
-Edit `load.sql` to adjust file paths if needed, then:
-
-```bash
-mysql -u root -p neo_hazard_db < load.sql
-```
-
-Verify row counts:
-
+Create tables:
 ```sql
-SELECT COUNT(*) FROM NEO;                -- should match your NEO count
-SELECT COUNT(*) FROM PredictedPHAs;      -- if ML pipeline was run
+SOURCE setup.sql;
 ```
 
-### 8. Configure the PHP Middleware
+Load data:
+```sql
+SOURCE load.sql;
+```
 
-Edit `api.php` and update the database credentials:
+Verify the data loaded correctly:
+```sql
+SELECT COUNT(*) FROM NEO;
+SELECT COUNT(*) FROM PhysicalProperties;
+SELECT COUNT(*) FROM OrbitalElements;
+SELECT COUNT(*) FROM ObservationRecord;
+SELECT COUNT(*) FROM PredictedPHAs;
+SELECT COUNT(*) FROM OrbitalAnomalies;
+```
+
+### 7. Configure Web Interface
+
+**Create `secrets.php` in your home directory:**
 
 ```php
-define('DB_HOST', 'localhost');
-define('DB_USER', 'neo_user');
+<?php
+define('DB_HOST', 'dbase.cs.jhu.edu');
+define('DB_USER', '26sp_<JHED>');
 define('DB_PASS', 'your_password');
-define('DB_NAME', 'neo_hazard_db');
+define('DB_NAME', '26sp_<JHED>_db');
+?>
 ```
 
-Place `api.php` and `index.html` in the same web‑accessible directory.
+**Set up your personal webpage:**
 
-### 9. Set File Permissions (for CS web servers)
+Follow the JHU CS documentation:
+- [Creating a Personal Webpage](https://support.cs.jhu.edu/wiki/Creating_a_Personal_Webpage)
+- [Running PHP Scripts on the CS Webservers](https://support.cs.jhu.edu/wiki/Running_PHP_Scripts_on_the_CS_Webservers)
 
-Following the JHU CS personal webpage instructions:
-
+Essential commands:
 ```bash
-chmod 0701 ~
-mkdir ~/public_html
-chmod 0701 ~/public_html
-cp api.php index.html ~/public_html/
-chmod 0604 ~/public_html/api.php ~/public_html/index.html
+# Set proper permissions
+chmod 0711 ~
+chmod 0711 ~/public_html
+
+# Copy web files to public_html
+cp index.html api.php ~/public_html/
+
+# Set file permissions
+chmod 0644 ~/public_html/index.html
+chmod 0644 ~/public_html/api.php
+
+# Ensure PHP can read secrets.php
+chmod 0644 ~/secrets.php
 ```
 
-### 10. Access the Interface
+### 8. Access the Interface
 
-- **CS Ugrad net:** `http://www.ugrad.cs.jhu.edu/~<account>/`
+Your website will be available at:
+```
+https://www.ugrad.cs.jhu.edu/~<JHED>/
+```
 
-The interface will automatically load the **stats cards** and the **Search tab**. All 16 query tabs work on‑demand.
+Replace `<JHED>` with your JHU username (e.g., `vliang5`).
+
+---
+
+## Using the Web Interface
+
+### Navigation
+The interface features 7 main tabs:
+- **Search** - Multi-filter asteroid lookup
+- **Threat Assessment** - Q1-Q5 hazard queries
+- **ML & Anomalies** - Q6-Q8 model evaluation
+- **Orbital Dynamics** - Q9-Q12 orbit analysis
+- **Extreme Objects** - Q13-Q15 unusual orbits
+- **Observation Quality** - Q16 data reliability
+- **Documentation** - Query descriptions
+
+### Features
+- **Live Statistics Cards** - Real-time dashboard of NEO counts, PHA percentages, anomaly rates
+- **Dynamic Results Tables** - Color-coded HTML tables with column highlighting
+- **Search Functionality** - Look up any asteroid name for full detail page
+- **CSV Export** - Download any query results
+- **Result Limit Control** - Display 10, 25, 50, or 100 results per query
+
+### Example Queries
+
+**Find closest-approaching PHAs:**
+```sql
+SELECT n.full_name, oe.moid, pp.diameter 
+FROM NEO n 
+JOIN OrbitalElements oe ON n.spkid = oe.spkid 
+JOIN PhysicalProperties pp ON n.spkid = pp.spkid 
+WHERE n.pha = 'Y' 
+ORDER BY oe.moid ASC 
+LIMIT 20;
+```
+
+**Find ML model disagreements (false positives/negatives):**
+```sql
+SELECT n.full_name, n.pha, p.pred_pha, p.pha_prob
+FROM NEO n
+JOIN PredictedPHAs p ON n.spkid = p.spkid
+WHERE (n.pha = 'Y' AND p.pred_pha = 'N')
+   OR (n.pha = 'N' AND p.pred_pha = 'Y');
+```
 
 ---
 
@@ -171,10 +235,6 @@ The interface will automatically load the **stats cards** and the **Search tab**
 | `search` | Multi‑filter search (name, class, PHA, ML prediction, MOID, diameter, risk %, anomaly) |
 | `q1` … `q16` | Each of the 16 analytical queries (supports `limit` and query‑specific filters) |
 | `export` | Streams any query as CSV download |
-
-Example: `api.php?action=q5&limit=50`
-
-All responses are JSON with `{ok: true, data: [...]}` or `{error: ...}`.
 
 ---
 
@@ -206,5 +266,7 @@ All responses are JSON with `{ok: true, data: [...]}` or `{error: ...}`.
 To completely remove all tables:
 
 ```bash
-mysql -u root -p neo_hazard_db < cleanup.sql
+mysql -h dbase.cs.jhu.edu -u 26sp_<JHED> -p 26sp_<JHED>_db < cleanup.sql
 ```
+
+---
