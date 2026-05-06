@@ -1081,34 +1081,24 @@ function renderProfile(r){
   };
 
   const physSection = section('⚖', 'Physical Properties',
-    tile('Diameter', r.diameter !== null ? parseFloat(r.diameter).toFixed(3) : null, 'km', 'var(--accent2)') +
-    tile('Abs. Magnitude H', r.H, 'mag') +
-    tile('Albedo', r.albedo !== null ? parseFloat(r.albedo).toFixed(4) : null)
+    tile('Diameter', r.diameter != null ? parseFloat(r.diameter).toFixed(3) : null, 'km', 'var(--accent2)') +
+    tile('Abs. Magnitude H', r.H, 'mag')
   );
 
   const orbSection = section('🪐', 'Orbital Elements',
-    tile('Eccentricity e', r.e !== null ? parseFloat(r.e).toFixed(6) : null, '', r.e > 0.9 ? 'var(--danger)' : 'var(--heading)') +
-    tile('Semi-Major Axis a', r.a !== null ? parseFloat(r.a).toFixed(6) : null, 'AU', 'var(--accent)') +
-    tile('Perihelion q', r.q !== null ? parseFloat(r.q).toFixed(6) : null, 'AU', r.q < 0.3 ? 'var(--danger)' : r.q < 1.0 ? 'var(--accent2)' : 'var(--text)') +
-    tile('Aphelion Q', r.aphelion_au !== null ? parseFloat(r.aphelion_au).toFixed(6) : null, 'AU') +
-    tile('Inclination i', r.i !== null ? parseFloat(r.i).toFixed(4) : null, '°') +
-    tile('MOID', r.moid !== null ? parseFloat(r.moid).toFixed(6) : null, 'AU', r.moid < 0.05 ? 'var(--danger)' : 'var(--text)') +
-    tile('MOID', r.moid_ld !== null ? parseFloat(r.moid_ld).toFixed(2) : null, 'LD') +
-    tile('Orbital Period', r.per_y !== null ? parseFloat(r.per_y).toFixed(4) : null, 'yr') +
-    tile('Mean Motion n', r.n !== null ? parseFloat(r.n).toFixed(6) : null, '°/day') +
-    tile('Longitude Asc. Node Ω', r.om !== null ? parseFloat(r.om).toFixed(4) : null, '°') +
-    tile('Arg. of Perihelion ω', r.w !== null ? parseFloat(r.w).toFixed(4) : null, '°') +
-    tile('Mean Anomaly M', r.ma !== null ? parseFloat(r.ma).toFixed(4) : null, '°') +
-    tile('Epoch', r.epoch) +
-    tile('Ref', r.ref)
+    tile('Eccentricity e', r.e != null ? parseFloat(r.e).toFixed(6) : null, '', parseFloat(r.e) > 0.9 ? 'var(--danger)' : 'var(--heading)') +
+    tile('Perihelion q', r.q != null ? parseFloat(r.q).toFixed(6) : null, 'AU', parseFloat(r.q) < 0.3 ? 'var(--danger)' : parseFloat(r.q) < 1.0 ? 'var(--accent2)' : 'var(--text)') +
+    tile('Aphelion Q', r.aphelion_au != null ? parseFloat(r.aphelion_au).toFixed(6) : null, 'AU') +
+    tile('Inclination i', r.i != null ? parseFloat(r.i).toFixed(4) : null, '°') +
+    tile('MOID', r.moid != null ? parseFloat(r.moid).toFixed(6) : null, 'AU', parseFloat(r.moid) < 0.05 ? 'var(--danger)' : 'var(--text)') +
+    tile('MOID', r.moid_ld != null ? parseFloat(r.moid_ld).toFixed(2) : null, 'LD')
   );
 
   const obsSection = section('🔭', 'Observation Record',
-    tile('Condition Code', r.condition_code, '', r.condition_code === 0 ? 'var(--safe)' : r.condition_code <= 2 ? 'var(--text)' : 'var(--accent2)') +
-    tile('Data Arc', r.data_arc !== null ? (+r.data_arc).toLocaleString() : null, 'days') +
-    tile('Data Arc', r.data_arc_years !== null ? parseFloat(r.data_arc_years).toFixed(1) : null, 'yr') +
-    tile('Obs Used', r.n_obs_used !== null ? (+r.n_obs_used).toLocaleString() : null) +
-    tile('Delay Obs Used', r.n_del_obs_used) +
+    tile('Condition Code', r.condition_code, '', r.condition_code == 0 ? 'var(--safe)' : r.condition_code <= 2 ? 'var(--text)' : 'var(--accent2)') +
+    tile('Data Arc', r.data_arc != null ? (+r.data_arc).toLocaleString() : null, 'days') +
+    tile('Data Arc', r.data_arc_years != null ? parseFloat(r.data_arc_years).toFixed(1) : null, 'yr') +
+    tile('Obs Used', r.n_obs_used != null ? (+r.n_obs_used).toLocaleString() : null) +
     tile('First Obs', r.first_obs) +
     tile('Last Obs', r.last_obs)
   );
@@ -1118,7 +1108,6 @@ function renderProfile(r){
     <div style="font-family:'Syne',sans-serif;font-size:0.78rem;font-weight:700;color:var(--accent);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px;padding-bottom:8px;border-bottom:1px solid var(--border);">🤖 ML Risk Assessment</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;">
       ${tile('Predicted PHA', r.pred_pha === 'Y' ? '⚠ Yes' : r.pred_pha === 'N' ? '✓ No' : null, '', r.pred_pha === 'Y' ? 'var(--accent2)' : 'var(--safe)')}
-      ${tile('Model Version', r.model_version)}
     </div>
     <div style="margin-top:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;">
       <div style="font-size:0.6rem;color:var(--muted);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:6px;">PHA Probability</div>
@@ -1130,9 +1119,9 @@ function renderProfile(r){
   <div style="margin-bottom:18px;">
     <div style="font-family:'Syne',sans-serif;font-size:0.78rem;font-weight:700;color:var(--accent);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px;padding-bottom:8px;border-bottom:1px solid var(--border);">⚡ Orbital Anomaly Flags</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;">
-      ${anomBadge('MOID Anomaly',        r.moid_anomaly_yn, r.moid_zscore)}
-      ${anomBadge('Eccentricity Anomaly',r.e_anomaly_yn,    r.e_zscore)}
-      ${anomBadge('Inclination Anomaly', r.i_anomaly_yn,    r.i_zscore)}
+      ${anomBadge('MOID Anomaly',         r.moid_anomaly_yn, null)}
+      ${anomBadge('Eccentricity Anomaly', r.e_anomaly_yn,    null)}
+      ${anomBadge('Inclination Anomaly',  r.i_anomaly_yn,    null)}
     </div>
   </div>`;
 

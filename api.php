@@ -133,45 +133,34 @@ switch ($action) {
                 n.class,
                 n.pha,
 
-                pp.diameter,
+                ROUND(pp.diameter, 4)                                               AS diameter,
                 pp.H,
-                pp.albedo,
 
-                oe.e,
-                oe.a,
-                oe.q,
-                ROUND(oe.q * (1 + oe.e) / (1 - oe.e), 6)  AS aphelion_au,
-                oe.i,
-                oe.om,
-                oe.w,
-                oe.ma,
-                oe.n,
-                oe.tp,
-                oe.per_y,
-                oe.moid,
-                oe.moid_ld,
-                oe.epoch,
-                oe.ref,
+                ROUND(oe.e, 6)                                                      AS e,
+                ROUND(oe.q, 6)                                                      AS q,
+                CASE
+                    WHEN oe.e IS NOT NULL AND oe.e < 1.0
+                    THEN ROUND(oe.q * (1 + oe.e) / NULLIF(1 - oe.e, 0), 6)
+                    ELSE NULL
+                END                                                                 AS aphelion_au,
+                ROUND(oe.i, 4)                                                      AS i,
+                ROUND(oe.moid, 6)                                                   AS moid,
+                ROUND(oe.moid_ld, 2)                                                AS moid_ld,
 
                 ob.condition_code,
                 ob.data_arc,
-                ROUND(ob.data_arc / 365.25, 2)              AS data_arc_years,
+                ROUND(ob.data_arc / 365.25, 2)                                      AS data_arc_years,
                 ob.n_obs_used,
-                ob.n_del_obs_used,
                 ob.first_obs,
                 ob.last_obs,
 
                 p.pred_pha,
-                ROUND(p.pha_prob * 100, 4)                  AS pha_prob_pct,
-                p.model_version,
+                ROUND(p.pha_prob * 100, 4)                                          AS pha_prob_pct,
 
                 oa.anomaly_flag,
                 oa.moid_anomaly_yn,
                 oa.e_anomaly_yn,
-                oa.i_anomaly_yn,
-                oa.moid_zscore,
-                oa.e_zscore,
-                oa.i_zscore
+                oa.i_anomaly_yn
 
             FROM NEO n
             LEFT JOIN PhysicalProperties pp  ON n.spkid = pp.spkid
