@@ -516,9 +516,12 @@ function errBox(msg){ return `<div class="err-box">⚠ ${msg}</div>`; }
 async function apiFetch(params){
   const url = API + '?' + new URLSearchParams(params).toString();
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const json = await res.json();
-  if (json.error) throw new Error(json.error);
+  const json = await res.json().catch(() => null);
+  if (!res.ok) {
+    const detail = json && json.error ? json.error : `HTTP ${res.status}`;
+    throw new Error(detail);
+  }
+  if (json && json.error) throw new Error(json.error);
   return json;
 }
 
